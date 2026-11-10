@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>正負の数トランプ＆タイル ― 赤と黒のゲーム</title>
+<meta name="description" content="トランプとタイルで遊びながら、正負の数の加法・減法・乗法が身につく学習アプリ。赤札は＋、黒札は−。全員の得点の合計は必ず0になります。">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta property="og:title" content="正負の数トランプ＆タイル ― 赤と黒のゲーム">
+<meta property="og:description" content="トランプとタイルで遊びながら正負の数を学ぶアプリ。ババ抜き式トランプゲーム（加法）・めくって勝負（乗法）・タイル工房（キャンセルの0）。">
+<meta property="og:image" content="og-image.png">
+<meta property="og:type" content="website">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; }
+  body { background:#f7f2e7; color:#2b2b30; font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif; min-height:100vh; }
+  .formula { font-family:"Times New Roman","Hiragino Mincho ProN",serif; font-style:normal; }
+  .formula i { font-style:italic; }
+  button { font-family:inherit; cursor:pointer; }
+  .screen { display:none; max-width:880px; margin:0 auto; padding:16px 14px 48px; }
+  .screen.active { display:block; }
+  /* ---------- title ---------- */
+  #scr-title { text-align:center; padding-top:28px; }
+  .fan { position:relative; height:120px; margin:6px auto 0; width:300px; }
+  .fan .fcard { position:absolute; left:50%; top:8px; width:74px; height:104px; margin-left:-37px; border-radius:9px; background:#fff; border:2px solid #d8d2c2; box-shadow:0 4px 10px rgba(0,0,0,.15); font-family:"Times New Roman",serif; display:flex; flex-direction:column; align-items:center; justify-content:center; animation:bob 3.2s ease-in-out infinite; }
+  .fan .fcard .s { font-size:30px; line-height:1; }
+  .fan .fcard .r { font-size:26px; font-weight:bold; }
+  .fan .c1 { transform:rotate(-16deg) translateX(-64px); animation-delay:0s; }
+  .fan .c2 { transform:rotate(-5deg) translateX(-22px); animation-delay:.3s; }
+  .fan .c3 { transform:rotate(5deg) translateX(22px); animation-delay:.6s; }
+  .fan .c4 { transform:rotate(16deg) translateX(64px); animation-delay:.9s; }
+  @keyframes bob { 0%,100% { margin-top:0; } 50% { margin-top:-8px; } }
+  .red { color:#b3232a; } .black { color:#26262b; }
+  h1.app-title { font-size:clamp(24px,6vw,38px); margin:10px 0 2px; letter-spacing:.02em; }
+  .app-sub { color:#8a7a52; font-weight:bold; margin:0 0 6px; font-size:clamp(14px,3.6vw,18px); }
+  .app-desc { color:#555; max-width:560px; margin:8px auto 20px; line-height:1.8; font-size:15px; }
+  .mode-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; max-width:780px; margin:0 auto; }
+  .mode-card { background:#fff; border:2px solid #e4dcc8; border-radius:16px; padding:18px 14px 16px; box-shadow:0 3px 10px rgba(0,0,0,.06); text-align:center; }
+  .mode-card .mc-icon { font-size:40px; }
+  .mode-card h2 { font-size:19px; margin:6px 0 4px; }
+  .mode-card p { color:#666; font-size:13.5px; line-height:1.7; margin:0 0 12px; min-height:66px; }
+  .big-btn { background:#b3232a; color:#fff; border:none; border-radius:999px; padding:12px 26px; font-size:16.5px; font-weight:bold; box-shadow:0 3px 0 #7e161c; }
+  .big-btn:active { transform:translateY(2px); box-shadow:0 1px 0 #7e161c; }
+  .big-btn.dark { background:#33333a; box-shadow:0 3px 0 #131316; }
+  .big-btn.teal { background:#14655a; box-shadow:0 3px 0 #0b423a; }
+  .big-btn.gold { background:#d9a441; box-shadow:0 3px 0 #a97c24; color:#fff; }
+  .big-btn:disabled { background:#c9c2ae; box-shadow:0 3px 0 #a39a80; }
+  .sub-links { margin-top:26px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .link-btn { background:#fff; border:2px solid #d8d2c2; color:#555; border-radius:999px; padding:9px 18px; font-size:14px; font-weight:bold; }
+  /* ---------- common game layout ---------- */
+  .topbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .topbar h2 { font-size:20px; margin:0; flex:1; }
+  .back-btn { background:#fff; border:2px solid #d8d2c2; border-radius:999px; padding:7px 14px; font-weight:bold; color:#555; font-size:14px; }
+  .pill { background:#fff; border:2px solid #e4dcc8; border-radius:999px; padding:5px 13px; font-weight:bold; font-size:14px; }
+  .msg { background:#fff8ea; border:2px solid #ecd9a8; border-radius:12px; padding:10px 14px; line-height:1.75; font-size:15.5px; min-height:52px; }
+  .msg b { color:#b3232a; }
+  .controls { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; justify-content:center; }
+  .ctl-btn { background:#14655a; color:#fff; border:none; border-radius:999px; padding:11px 22px; font-size:15.5px; font-weight:bold; box-shadow:0 3px 0 #0b423a; }
+  .ctl-btn:active { transform:translateY(2px); box-shadow:0 1px 0 #0b423a; }
+  .ctl-btn.alt { background:#fff; color:#14655a; border:2px solid #14655a; box-shadow:none; }
+  .ctl-btn.warn { background:#b3232a; box-shadow:0 3px 0 #7e161c; }
+  .ctl-btn:disabled { background:#c9c2ae; box-shadow:none; color:#fff; border:none; }
+  /* playing cards */
+  .pcard { width:64px; height:90px; border-radius:8px; background:#fff; border:2px solid #cfc8b4; box-shadow:0 2px 6px rgba(0,0,0,.13); font-family:"Times New Roman",serif; position:relative; flex:0 0 auto; user-select:none; }
+  .pcard .corner { position:absolute; top:3px; left:6px; font-size:15px; font-weight:bold; line-height:1.05; text-align:center; }
+  .pcard .pip { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .pcard .val { position:absolute; bottom:3px; right:5px; font-size:12.5px; font-weight:bold; background:#f1ead6; border-radius:6px; padding:1px 5px; font-family:"Hiragino Maru Gothic ProN",sans-serif; }
+  .pcard.red { color:#b3232a; } .pcard.black { color:#26262b; }
+  .pcard.joker { color:#7a4fa3; background:linear-gradient(160deg,#fff,#f3eafd); }
+  .pcard.back { background:repeating-linear-gradient(45deg,#a02c33 0 8px,#8c2129 8px 16px); border-color:#7e161c; }
+  .pcard.back::after { content:"✦"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#f7e9c8; font-size:24px; }
+  .pcard.small { width:50px; height:70px; }
+  .pcard.small .pip { font-size:23px; }
+  .pcard.big { width:88px; height:124px; }
+  .pcard.big .pip { font-size:44px; }
+  .pcard.big .corner { font-size:20px; }
+  .pcard.pop { animation:cardpop .45s ease; }
+  @keyframes cardpop { 0% { transform:scale(.6) rotate(-6deg); opacity:0; } 60% { transform:scale(1.12) rotate(2deg); } 100% { transform:scale(1); opacity:1; } }
+  /* players (addition game) */
+  .players { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:12px; }
+  .player-box { background:#fff; border:2px solid #e4dcc8; border-radius:14px; padding:10px 10px 12px; position:relative; }
+  .player-box.turn { border-color:#d9a441; box-shadow:0 0 0 3px rgba(217,164,65,.35); }
+  .player-box .pname { font-weight:bold; font-size:15px; display:flex; align-items:center; gap:7px; }
+  .player-box .pname .dot { width:13px; height:13px; border-radius:50%; display:inline-block; }
+  .score-chip { margin-left:auto; font-family:"Times New Roman",serif; font-weight:bold; font-size:19px; background:#f7f2e7; border:2px solid #e4dcc8; border-radius:9px; padding:1px 9px; transition:transform .2s; }
+  .score-chip.bump { transform:scale(1.3); }
+  .score-chip.plus { color:#14655a; } .score-chip.minus { color:#b3232a; }
+  .hand { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; min-height:74px; align-content:flex-start; }
+  .hand .pcard { width:44px; height:62px; border-radius:6px; }
+  .hand .pcard .corner { font-size:11.5px; left:4px; }
+  .hand .pcard .pip { font-size:19px; }
+  .hand .pcard .val { display:none; }
+  .draw-zone { margin-top:12px; background:#fff; border:2px dashed #d8d2c2; border-radius:14px; padding:12px; text-align:center; }
+  .draw-zone .backs { display:flex; gap:6px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
+  .draw-zone .pcard { cursor:pointer; transition:transform .15s; }
+  .draw-zone .pcard:hover, .draw-zone .pcard:active { transform:translateY(-8px) scale(1.05); }
+  .float-txt { position:absolute; font-weight:bold; font-size:19px; pointer-events:none; animation:floatup 1.4s ease-out forwards; z-index:5; text-shadow:0 1px 0 #fff; }
+  @keyframes floatup { 0% { opacity:0; transform:translateY(8px) scale(.8); } 18% { opacity:1; transform:translateY(0) scale(1.15); } 100% { opacity:0; transform:translateY(-46px) scale(1); } }
+  /* tables */
+  table.score-table { border-collapse:collapse; width:100%; background:#fff; font-size:14.5px; }
+  table.score-table th, table.score-table td { border:1.5px solid #d8d2c2; padding:6px 8px; text-align:center; }
+  table.score-table th { background:#f1ead6; }
+  table.score-table td.num { font-family:"Times New Roman",serif; font-weight:bold; }
+  .panel { background:#fff; border:2px solid #e4dcc8; border-radius:14px; padding:14px; margin-top:14px; }
+  .panel h3 { margin:0 0 8px; font-size:16.5px; }
+  /* multiplication */
+  .mul-stage { display:flex; gap:18px; justify-content:center; align-items:flex-start; margin:18px 0 6px; flex-wrap:wrap; }
+  .mul-slot { text-align:center; }
+  .mul-slot .slot-label { font-weight:bold; color:#8a7a52; margin-bottom:6px; font-size:14.5px; }
+  .mul-slot .slot-card { min-height:128px; display:flex; align-items:center; justify-content:center; }
+  .mul-vs { font-size:30px; font-weight:bold; align-self:center; font-family:"Times New Roman",serif; }
+  .deck-pile { width:88px; height:124px; margin:0 auto; cursor:pointer; position:relative; }
+  .deck-pile .pcard { position:absolute; inset:0; }
+  .deck-pile:active .pcard { transform:scale(.96); }
+  .mul-expr { text-align:center; font-size:clamp(24px,6vw,36px); font-weight:bold; margin:10px 0 2px; min-height:48px; }
+  .mul-words { text-align:center; font-size:16.5px; color:#444; min-height:28px; line-height:1.7; }
+  .drama { animation:pulse 0.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.045); } }
+  .scoreboard { display:flex; gap:12px; justify-content:center; margin:12px 0; flex-wrap:wrap; }
+  .sb-box { background:#fff; border:2px solid #e4dcc8; border-radius:12px; padding:8px 20px; text-align:center; min-width:130px; }
+  .sb-box .sb-name { font-weight:bold; font-size:14px; color:#666; }
+  .sb-box .sb-score { font-family:"Times New Roman",serif; font-size:30px; font-weight:bold; }
+  /* tiles */
+  #tile-board { position:relative; background:#fff; border:2px solid #e4dcc8; border-radius:14px; min-height:300px; margin-top:12px; overflow:hidden; touch-action:none; overscroll-behavior:none; background-image:radial-gradient(#eee5cd 1.2px, transparent 1.3px); background-size:22px 22px; }
+  .tile { position:absolute; width:52px; height:52px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-family:"Times New Roman",serif; font-size:24px; font-weight:bold; cursor:grab; user-select:none; box-shadow:0 2px 5px rgba(0,0,0,.18); transition:left .25s, top .25s, opacity .3s, transform .2s; z-index:2; }
+  .tile.plus { background:#ffffff; border:2.5px solid #9a917c; color:#14655a; }
+  .tile.minus { background:#c03a41; border:2.5px solid #8c2129; color:#fff; }
+  .tile.selected { outline:3.5px solid #d9a441; outline-offset:1px; }
+  .tile.dragging { transition:none; z-index:9; cursor:grabbing; }
+  .tile.vanish { transform:scale(.2) rotate(40deg); opacity:0; }
+  .tile.appear { animation:tilein .3s ease; }
+  @keyframes tilein { from { transform:scale(.4); opacity:0; } to { transform:scale(1); opacity:1; } }
+  .tile.shake { animation:shake .35s ease; }
+  @keyframes shake { 0%,100% { margin-left:0; } 25% { margin-left:-6px; } 75% { margin-left:6px; } }
+  .tile-value { text-align:center; margin-top:12px; font-size:19px; font-weight:bold; }
+  .tile-value .tv-num { font-family:"Times New Roman",serif; font-size:36px; }
+  .prob-nav { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .prob-chip { border:2px solid #d8d2c2; background:#fff; border-radius:999px; padding:6px 13px; font-weight:bold; font-size:13.5px; font-family:"Times New Roman",serif; }
+  .prob-chip.now { background:#14655a; color:#fff; border-color:#14655a; }
+  .prob-chip.done { background:#e8f2ef; border-color:#14655a; color:#14655a; }
+  /* modal */
+  .modal-bg { display:none; position:fixed; inset:0; background:rgba(30,25,15,.55); z-index:50; align-items:center; justify-content:center; padding:14px; }
+  .modal-bg.open { display:flex; }
+  .modal-box { background:#f7f2e7; border-radius:18px; max-width:640px; width:100%; max-height:88vh; overflow:auto; padding:20px 18px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+  .modal-box h3 { margin:0 0 10px; font-size:20px; text-align:center; }
+  .reveal-row { display:flex; align-items:center; gap:8px; margin:10px 0; flex-wrap:wrap; }
+  .reveal-row .rname { font-weight:bold; width:76px; }
+  .reveal-row .rtotal { font-family:"Times New Roman",serif; font-weight:bold; font-size:24px; margin-left:auto; }
+  .zero-stamp { text-align:center; font-size:clamp(22px,6vw,32px); font-weight:bold; color:#14655a; margin:16px 0 4px; }
+  .zero-stamp .znum { font-family:"Times New Roman",serif; font-size:1.6em; color:#b3232a; }
+  /* column */
+  .column-body { line-height:1.95; font-size:15.5px; }
+  .column-body h3 { color:#b3232a; margin:1.3em 0 .3em; }
+  .src-box { background:#fff; border:2px solid #e4dcc8; border-radius:12px; padding:12px 16px; font-size:14.5px; line-height:1.85; }
+  /* print sheet */
+  #print-sheet { display:none; }
+  @media print {
+    body { background:#fff; }
+    body * { visibility:hidden; }
+    #print-sheet, #print-sheet * { visibility:visible; }
+    #print-sheet { display:block; position:absolute; left:0; top:0; width:100%; padding:10mm; }
+  }
+  #print-sheet h2 { font-size:17pt; margin:0 0 4mm; }
+  #print-sheet table { border-collapse:collapse; width:100%; }
+  #print-sheet th, #print-sheet td { border:1.2pt solid #333; height:11mm; text-align:center; font-size:12pt; }
+  #print-sheet th { background:#eee; }
+  .checkline { margin-top:8mm; }
+  .checkline .bar { display:inline-block; width:50mm; border-top:2.5pt solid #c62828; position:relative; vertical-align:middle; }
+  .checkline .bar::before, .checkline .bar::after { content:""; position:absolute; top:-3mm; width:0; height:6mm; border-left:2.5pt solid #c62828; }
+  .checkline .bar::after { right:0; }
+  #confetti-canvas { position:fixed; inset:0; pointer-events:none; z-index:99; }
+  .toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(80px); background:#33333a; color:#fff; padding:11px 22px; border-radius:999px; font-weight:bold; font-size:15px; z-index:80; transition:transform .3s; max-width:92vw; text-align:center; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+<div class="toast" id="toast"></div>
+
+<!-- ============ TITLE ============ -->
+<section class="screen active" id="scr-title">
+  <div class="fan">
+    <div class="fcard c1 red"><span class="s">♥</span><span class="r">3</span></div>
+    <div class="fcard c2 black"><span class="s">♠</span><span class="r">2</span></div>
+    <div class="fcard c3 red"><span class="s">♦</span><span class="r">5</span></div>
+    <div class="fcard c4 black"><span class="s">♣</span><span class="r">4</span></div>
+  </div>
+  <h1 class="app-title">正負の数トランプ＆タイル</h1>
+  <p class="app-sub">― 赤と黒のゲーム ―</p>
+  <p class="app-desc">赤札は <b class="red">＋（プラス）</b>、黒札は <b class="black">−（マイナス）</b>。トランプとタイルで遊びながら、正負の数の計算が自然と身につく学習アプリです。</p>
+  <div class="mode-cards">
+    <div class="mode-card">
+      <div class="mc-icon">🃏</div>
+      <h2>トランプ（加法）</h2>
+      <p>ババ抜きの要領で隣の人から札を抜き合うゲーム。ストップがかかったら手札の合計が得点。全員の得点の合計は、必ず <b>0</b> になります。</p>
+      <button class="big-btn" data-go="add">あそぶ</button>
+    </div>
+    <div class="mode-card">
+      <div class="mc-icon">🎴</div>
+      <h2>トランプ（乗法）</h2>
+      <p>山札から2枚めくって得点を競います。1枚目が基礎点、2枚目がもらう枚数。黒が出ると「取られる」ことに…。(−)×(−)＝＋ の瞬間を体験！</p>
+      <button class="big-btn dark" data-go="mul">あそぶ</button>
+    </div>
+    <div class="mode-card">
+      <div class="mc-icon">🟥</div>
+      <h2>タイル工房</h2>
+      <p>白タイル（＋）と赤タイル（−）を置いて数を表します。「キャンセルの0」でペアが消えるアニメーションと、取れないときの「0のペア作戦」が肝です。</p>
+      <button class="big-btn teal" data-go="tile">あそぶ</button>
+    </div>
+  </div>
+  <div class="sub-links">
+    <button class="link-btn" id="btn-column">📖 コラム・出典</button>
+    <button class="link-btn" id="btn-print-title">🖨 得点記録用紙を印刷</button>
+  </div>
+</section>
+
+<!-- ============ ADDITION GAME ============ -->
+<section class="screen" id="scr-add">
+  <div class="topbar">
+    <button class="back-btn" data-back>← タイトル</button>
+    <h2>トランプ（加法）― 赤と黒のゲーム</h2>
+    <span class="pill" id="add-round-pill">ゲーム 1</span>
+  </div>
+  <div class="msg" id="add-msg">「ゲームスタート」を押してください。札はぜんぶで17枚（1〜4とジョーカー）。赤札は＋、黒札は−、ジョーカーは0です。</div>
+  <div class="controls">
+    <button class="ctl-btn" id="add-start">🎲 ゲームスタート</button>
+    <button class="ctl-btn warn" id="add-stop" disabled>✋ ストップ！（得点計算へ）</button>
+    <label class="pill" style="cursor:pointer">札の数：
+      <select id="add-decksize" style="font-size:15px; font-weight:bold; border:none; background:transparent">
+        <option value="4">1〜4（17枚）</option>
+        <option value="5">1〜5（21枚）</option>
+      </select>
+    </label>
+  </div>
+  <div class="players" id="add-players"></div>
+  <div class="draw-zone" id="add-drawzone" style="display:none">
+    <b id="add-draw-title">あなたの番です。左どなりの「みどり」の札を1枚タップして抜いてください</b>
+    <div class="backs" id="add-backs"></div>
+  </div>
+  <div class="panel" id="add-record-panel" style="display:none">
+    <h3>📝 得点記録</h3>
+    <div style="overflow-x:auto"><table class="score-table" id="add-record"></table></div>
+    <div class="controls">
+      <button class="ctl-btn alt" id="add-print">🖨 記録用紙を印刷</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MULTIPLICATION GAME ============ -->
+<section class="screen" id="scr-mul">
+  <div class="topbar">
+    <button class="back-btn" data-back>← タイトル</button>
+    <h2>トランプ（乗法）― めくって勝負</h2>
+    <span class="pill" id="mul-round-pill">1 / 10 回戦</span>
+  </div>
+  <div class="msg" id="mul-msg">山札（1〜10の40枚）から、あなたとコンピュータが交互に2枚ずつめくります。1枚目が「基礎点」、2枚目が「もらう枚数」。2枚目が黒札だと、その枚数だけ<b>取られて</b>しまいます。</div>
+  <div class="scoreboard">
+    <div class="sb-box"><div class="sb-name">あなた</div><div class="sb-score" id="mul-score-you">0</div></div>
+    <div class="sb-box"><div class="sb-name">コンピュータ</div><div class="sb-score" id="mul-score-cpu">0</div></div>
+  </div>
+  <div class="mul-stage">
+    <div class="mul-slot"><div class="slot-label">基礎点（1枚目）</div><div class="slot-card" id="mul-slot1"></div></div>
+    <div class="mul-vs">×</div>
+    <div class="mul-slot"><div class="slot-label">枚数（2枚目）</div><div class="slot-card" id="mul-slot2"></div></div>
+    <div class="mul-vs">＝</div>
+    <div class="mul-slot"><div class="slot-label">得点</div><div class="slot-card"><div class="sb-box" style="min-width:104px"><div class="sb-score" id="mul-result">？</div></div></div></div>
+  </div>
+  <div class="mul-expr formula" id="mul-expr"></div>
+  <div class="mul-words" id="mul-words"></div>
+  <div class="controls">
+    <div class="deck-pile" id="mul-deck" title="山札"><div class="pcard back big"></div></div>
+  </div>
+  <div class="controls">
+    <button class="ctl-btn" id="mul-flip">🃏 山札をめくる</button>
+    <button class="ctl-btn alt" id="mul-reset">↺ はじめから</button>
+  </div>
+  <p style="text-align:center; color:#888; font-size:13.5px" id="mul-deck-left">残りの山札：40枚</p>
+  <div class="panel" id="mul-history-panel" style="display:none">
+    <h3>📝 対戦記録</h3>
+    <div style="overflow-x:auto"><table class="score-table" id="mul-history"></table></div>
+  </div>
+</section>
+
+<!-- ============ TILE WORKSHOP ============ -->
+<section class="screen" id="scr-tile">
+  <div class="topbar">
+    <button class="back-btn" data-back>← タイトル</button>
+    <h2>タイル工房</h2>
+    <span class="pill" id="tile-mode-pill">課題モード</span>
+  </div>
+  <div class="prob-nav" id="tile-probs"></div>
+  <div class="msg" id="tile-msg" style="margin-top:10px">課題を選んでください。白タイル1枚が <span class="formula">(+1)</span>、赤タイル1枚が <span class="formula">(−1)</span> です。</div>
+  <div class="controls" id="tile-controls"></div>
+  <div id="tile-board"></div>
+  <div class="tile-value">いまの値：<span class="tv-num formula" id="tile-value">0</span>　<span style="color:#888; font-size:14px">（白 <span id="tile-cnt-p">0</span> 枚 ・ 赤 <span id="tile-cnt-m">0</span> 枚）</span></div>
+  <div class="controls">
+    <button class="ctl-btn alt" id="tile-free">🎨 自由モード</button>
+    <button class="ctl-btn alt" id="tile-clear">🧹 全部消す</button>
+  </div>
+</section>
+
+<!-- ============ COLUMN MODAL ============ -->
+<div class="modal-bg" id="modal-column">
+  <div class="modal-box">
+    <h3>📖 コラム・出典</h3>
+    <div class="column-body">
+      <h3>「赤と黒のゲーム」</h3>
+      <p>このトランプゲームは、清水先生が現役時代の授業でよく使った実践です（ご本人のブログ「アメブロ」にも「赤と黒のゲーム」として記事があります）。名前の「赤と黒」は、赤札と黒札の色からきています。スタンダールの小説『赤と黒』とは、題名の色が同じだけの別のゲームです。</p>
+      <p>ババ抜き式に札を抜き合うだけなのに、得点計算では知らず知らずのうちに「代数和」のトレーニングになっています。班ごとに得点記入用紙をつけるのも、その仕掛けのひとつでした。</p>
+      <h3>いちばんの肝</h3>
+      <p>黒札（マイナスの札）を相手に抜かれると、自分の持ち点は<b>増えます</b>。「負の数を引くと、増える」という、正負の数いちばんの不思議を、実感として納得できるのがこのゲームの良さです。加法ゲームで黒札が抜かれる瞬間に注目してみてください。</p>
+      <h3>タイルと「キャンセルの0」</h3>
+      <p>白（＋）と赤（−）のタイルが1枚ずつペアになると、合わせて0になって消えます（キャンセルの0）。そして、引くタイルが足りないときは、0のペアを足してから取る、という手順で「引くことは、反対の数を足すこと」と同じだと分かります。</p>
+      <h3>出典</h3>
+      <div class="src-box">
+        榊忠男・和田常雄 編『操作活動による数学重要教材指導法 中学校1年』（明治図書）第2章「正負の数」（石川剛）をもとに、仕組みを実装しました。本文・図の転載はしておらず、遊び方と計算の仕組みだけをアプリ化しています。
+      </div>
+      <p style="color:#888; font-size:13.5px">不具合が出るかもしれません。実際にご使用の際に不具合がありましたら、コメント欄からお知らせください。</p>
+    </div>
+    <div class="controls"><button class="ctl-btn" id="column-close">閉じる</button></div>
+  </div>
+</div>
+
+<!-- ============ SCORING MODAL (addition) ============ -->
+<div class="modal-bg" id="modal-score">
+  <div class="modal-box">
+    <h3>🧮 得点計算</h3>
+    <div id="score-body"></div>
+    <div class="zero-stamp" id="zero-stamp" style="display:none">全員の合計は <span class="znum">0</span> ！<br><span style="font-size:.62em; color:#666">札全体の合計が0だから、だれがどの札を持っていても、全員の得点の合計は必ず0になります。</span></div>
+    <div class="controls">
+      <button class="ctl-btn" id="score-next" style="display:none">🎲 次のゲームへ</button>
+      <button class="ctl-btn alt" id="score-close">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PRINT SHEET ============ -->
+<div id="print-sheet">
+  <h2>正負の数トランプゲーム 得点記録用紙</h2>
+  <table id="print-table"></table>
+  <div class="checkline"><span class="bar"></span>　印刷したら、この線が5cmになっているか確かめてください（ずれているときは「実際のサイズ」で印刷し直してください）。</div>
+  <p style="font-size:10.5pt; color:#444">赤札は＋、黒札は−、ジョーカーは0。各ゲーム、全員の得点の合計は0になります。計算ミスのチェックに使えます。</p>
+</div>
+
+<script>
+"use strict";
+/* ================= utilities ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const fmt = n => (n > 0 ? "+" + n : n < 0 ? "−" + Math.abs(n) : "0");
+const fmtParen = n => "(" + fmt(n) + ")";
+let toastTimer = null;
+function toast(text) {
+  const t = $("#toast"); t.textContent = text; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+/* ================= audio (WebAudio synth) ================= */
+let AC = null;
+function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } } if (AC && AC.state === "suspended") AC.resume(); return AC; }
+function tone(freq, dur, type = "sine", vol = 0.16, when = 0, slideTo = null) {
+  const c = ac(); if (!c) return;
+  const t0 = c.currentTime + when;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t0);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+const sfx = {
+  flip() { tone(660, 0.07, "triangle", 0.14, 0, 990); },
+  draw() { tone(440, 0.09, "triangle", 0.15, 0, 700); },
+  pop() { tone(520, 0.08, "square", 0.10, 0, 240); },
+  cancel() { tone(880, 0.16, "sine", 0.15, 0, 220); },
+  place() { tone(330, 0.07, "triangle", 0.13); },
+  good() { [523, 659, 784].forEach((f, i) => tone(f, 0.16, "triangle", 0.15, i * 0.09)); },
+  fanfare() { [523, 523, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.2, "triangle", 0.16, i * 0.11)); },
+  bad() { tone(220, 0.22, "sawtooth", 0.07, 0, 160); },
+  tick() { tone(1200, 0.03, "square", 0.05); },
+  stamp() { tone(180, 0.14, "sine", 0.22, 0, 70); }
+};
+/* ================= confetti ================= */
+const cvs = $("#confetti-canvas"), ctx = cvs.getContext("2d");
+function sizeCanvas() { cvs.width = innerWidth; cvs.height = innerHeight; }
+addEventListener("resize", sizeCanvas); sizeCanvas();
+let confetti = [], confettiRunning = false;
+function burst(n = 90) {
+  const colors = ["#b3232a", "#26262b", "#d9a441", "#14655a", "#f2c14e", "#ffffff"];
+  for (let i = 0; i < n; i++) {
+    confetti.push({ x: innerWidth / 2 + (Math.random() - 0.5) * innerWidth * 0.5, y: innerHeight * 0.32, vx: (Math.random() - 0.5) * 9, vy: -(Math.random() * 9 + 4), w: 5 + Math.random() * 6, h: 8 + Math.random() * 7, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.3, color: colors[i % colors.length], life: 110 + Math.random() * 40 });
+  }
+  if (!confettiRunning) { confettiRunning = true; requestAnimationFrame(confettiStep); }
+}
+function confettiStep() {
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  confetti = confetti.filter(p => p.life > 0 && p.y < cvs.height + 30);
+  for (const p of confetti) {
+    p.vy += 0.22; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life--;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.color; ctx.globalAlpha = Math.min(1, p.life / 40); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+  }
+  if (confetti.length) requestAnimationFrame(confettiStep);
+  else { confettiRunning = false; ctx.clearRect(0, 0, cvs.width, cvs.height); }
+}
+/* ================= cards ================= */
+const SUITS = { h: "♥", d: "♦", s: "♠", c: "♣" };
+const suitColor = s => (s === "h" || s === "d") ? "red" : "black";
+function cardValue(card) { if (card.suit === "j") return 0; return suitColor(card.suit) === "red" ? card.rank : -card.rank; }
+function cardEl(card, size = "") {
+  const d = document.createElement("div");
+  if (card.suit === "j") {
+    d.className = "pcard joker " + size;
+    d.innerHTML = '<div class="corner">JOKER</div><div class="pip">🃏</div><div class="val">0点</div>';
+  } else {
+    d.className = "pcard " + suitColor(card.suit) + " " + size;
+    d.innerHTML = '<div class="corner">' + SUITS[card.suit] + '<br>' + card.rank + '</div><div class="pip">' + SUITS[card.suit] + '</div><div class="val">' + fmt(cardValue(card)) + '点</div>';
+  }
+  d.dataset.val = cardValue(card);
+  return d;
+}
+function backEl(size = "") { const d = document.createElement("div"); d.className = "pcard back " + size; return d; }
+/* ================= navigation ================= */
+function showScreen(id) {
+  $$(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+  scrollTo({ top: 0 });
+}
+$$("[data-go]").forEach(b => b.addEventListener("click", () => { ac(); showScreen("scr-" + b.dataset.go); }));
+$$("[data-back]").forEach(b => b.addEventListener("click", () => showScreen("scr-title")));
+$("#btn-column").addEventListener("click", () => $("#modal-column").classList.add("open"));
+$("#column-close").addEventListener("click", () => $("#modal-column").classList.remove("open"));
+</script>
+<script>
+"use strict";
+/* ================= ADDITION GAME ================= */
+const PLAYER_DEFS = [
+  { name: "あなた", color: "#b3232a" },
+  { name: "みどり", color: "#2e7d4f" },
+  { name: "あお", color: "#2b50aa" },
+  { name: "きいろ", color: "#c9930a" }
+];
+const ADD = { players: [], turn: 0, drawsInRound: 0, round: 1, gameNo: 1, busy: false, playing: false, records: [] };
+function addBuildDeck(maxRank) {
+  const deck = [];
+  for (const s of ["h", "d", "s", "c"]) for (let r = 1; r <= maxRank; r++) deck.push({ suit: s, rank: r });
+  deck.push({ suit: "j", rank: 0 });
+  return shuffle(deck);
+}
+const addSum = p => p.hand.reduce((a, c) => a + cardValue(c), 0);
+function addSource(idx) {
+  for (let k = 1; k <= 3; k++) { const j = (idx + k) % 4; if (ADD.players[j].hand.length) return j; }
+  return -1;
+}
+function addRender(floats = {}) {
+  const wrap = $("#add-players"); wrap.innerHTML = "";
+  ADD.players.forEach((p, i) => {
+    const box = document.createElement("div");
+    box.className = "player-box" + (ADD.playing && ADD.turn === i ? " turn" : "");
+    box.id = "pbox-" + i;
+    const sum = addSum(p);
+    box.innerHTML = '<div class="pname"><span class="dot" style="background:' + p.color + '"></span>' + p.name +
+      '<span class="score-chip ' + (sum > 0 ? "plus" : sum < 0 ? "minus" : "") + '" id="chip-' + i + '">' + fmt(sum) + '点</span></div>';
+    const hand = document.createElement("div"); hand.className = "hand";
+    if (i === 0) { p.hand.forEach(c => hand.appendChild(cardEl(c))); }
+    else {
+      if (!p.hand.length) hand.innerHTML = '<span style="color:#999; font-size:13px">札なし</span>';
+      p.hand.forEach(() => hand.appendChild(backEl()));
+    }
+    box.appendChild(hand);
+    if (floats[i]) {
+      const f = document.createElement("span"); f.className = "float-txt";
+      f.style.right = "10px"; f.style.top = "34px"; f.style.color = floats[i].color || "#14655a";
+      f.textContent = floats[i].text; box.appendChild(f);
+    }
+    wrap.appendChild(box);
+  });
+}
+function addMsg(html) { $("#add-msg").innerHTML = html; }
+function addStart() {
+  const maxRank = parseInt($("#add-decksize").value, 10);
+  const deck = addBuildDeck(maxRank);
+  ADD.players = PLAYER_DEFS.map(d => ({ ...d, hand: [] }));
+  deck.forEach((c, i) => ADD.players[i % 4].hand.push(c));
+  ADD.turn = 0; ADD.drawsInRound = 0; ADD.round = 1; ADD.playing = true; ADD.busy = false;
+  $("#add-round-pill").textContent = "ゲーム " + ADD.gameNo;
+  $("#add-stop").disabled = true;
+  addRender();
+  addMsg("札を配りました。まず <b>あなた</b> の番です。左どなりの「みどり」の札から1枚抜いてください。黒札を抜かれると、その人の点は<b>増えます</b>。");
+  addShowDrawZone();
+}
+function addShowDrawZone() {
+  const zone = $("#add-drawzone");
+  if (!ADD.playing || ADD.turn !== 0) { zone.style.display = "none"; return; }
+  const src = addSource(0);
+  if (src < 0) { zone.style.display = "none"; addStopGame(); return; }
+  zone.style.display = "block";
+  $("#add-draw-title").textContent = "あなたの番：左どなりの「" + ADD.players[src].name + "」の札を1枚タップして抜いてください";
+  const backs = $("#add-backs"); backs.innerHTML = "";
+  ADD.players[src].hand.forEach((c, idx) => {
+    const b = backEl(); b.title = "この札を抜く";
+    b.addEventListener("click", () => { if (!ADD.busy) addDoDraw(0, idx); });
+    backs.appendChild(b);
+  });
+}
+async function addDoDraw(drawerIdx, cardIdx) {
+  if (ADD.busy || !ADD.playing) return;
+  ADD.busy = true;
+  $("#add-drawzone").style.display = "none";
+  const src = addSource(drawerIdx);
+  if (src < 0) { ADD.busy = false; addStopGame(); return; }
+  const source = ADD.players[src], drawer = ADD.players[drawerIdx];
+  const before = ADD.players.map(addSum);
+  const card = source.hand.splice(cardIdx != null ? cardIdx : Math.floor(Math.random() * source.hand.length), 1)[0];
+  drawer.hand.push(card);
+  sfx.draw();
+  const v = cardValue(card);
+  const floats = {};
+  const after = ADD.players.map(addSum);
+  ADD.players.forEach((p, i) => {
+    if (after[i] > before[i]) floats[i] = { text: "+" + (after[i] - before[i]) + " ふえた！", color: "#14655a" };
+    else if (after[i] < before[i]) floats[i] = { text: "−" + (before[i] - after[i]), color: "#b3232a" };
+  });
+  addRender(floats);
+  const cardName = card.suit === "j" ? "ジョーカー（0点）" : (suitColor(card.suit) === "red" ? "赤札 " : "黒札 ") + SUITS[card.suit] + card.rank + "（" + fmt(v) + "点）";
+  if (drawerIdx === 0) {
+    if (v < 0) addMsg("あなたは <b>" + cardName + "</b> を抜きました。あなたの点は下がりますが、抜かれた「" + source.name + "」の点は <b>" + fmt(-v) + " 増えました</b>。負の数を引かれると、持ち点が増えるのです。");
+    else if (v > 0) addMsg("あなたは <b>" + cardName + "</b> を抜きました。「" + source.name + "」の点がそのぶん減りました。");
+    else addMsg("あなたは <b>ジョーカー</b> を抜きました。0点なので、どちらの点も変わりません。");
+  } else {
+    if (v < 0 && src === 0) { addMsg("「" + drawer.name + "」が、あなたの <b>黒札</b> を抜いていきました。あなたの点が <b>" + fmt(-v) + " 増えました</b>！ 負の数を引かれると増える、これがこの単元の肝です。"); sfx.good(); }
+    else addMsg("「" + drawer.name + "」が「" + source.name + "」から <b>" + cardName + "</b> を抜きました。");
+  }
+  await wait(drawerIdx === 0 ? 500 : 900);
+  ADD.drawsInRound++;
+  if (ADD.drawsInRound >= 4) {
+    ADD.drawsInRound = 0; ADD.round++;
+    if (ADD.round >= 2) $("#add-stop").disabled = false;
+    if (ADD.round > 3) { ADD.busy = false; addStopGame(); return; }
+    if (ADD.playing) addMsg("―― " + ADD.round + " 周目に入ります ――");
+    await wait(600);
+  }
+  ADD.turn = (ADD.turn + 1) % 4;
+  ADD.busy = false;
+  addRender();
+  if (!ADD.playing) return;
+  if (ADD.turn === 0) addShowDrawZone();
+  else addCpuTurn();
+}
+async function addCpuTurn() {
+  await wait(650);
+  if (!ADD.playing || ADD.busy || ADD.turn === 0) return;
+  addDoDraw(ADD.turn, null);
+}
+function addStopGame() {
+  if (!ADD.playing) return;
+  ADD.playing = false;
+  $("#add-drawzone").style.display = "none";
+  $("#add-stop").disabled = true;
+  addRender();
+  const totals = ADD.players.map(addSum);
+  const body = $("#score-body"); body.innerHTML = "";
+  $("#zero-stamp").style.display = "none";
+  $("#score-next").style.display = "none";
+  $("#modal-score").classList.add("open");
+  (async () => {
+    for (let i = 0; i < 4; i++) {
+      const p = ADD.players[i];
+      const row = document.createElement("div"); row.className = "reveal-row";
+      row.innerHTML = '<span class="rname">' + p.name + '</span>';
+      const tot = document.createElement("span"); tot.className = "rtotal"; tot.textContent = "0";
+      body.appendChild(row); row.appendChild(tot);
+      let run = 0;
+      for (const c of p.hand) {
+        const el = cardEl(c, "small"); el.classList.add("pop");
+        row.insertBefore(el, tot); run += cardValue(c);
+        tot.textContent = fmt(run);
+        sfx.flip(); await wait(340);
+      }
+      tot.textContent = fmt(totals[i]) + "点";
+      sfx.stamp(); await wait(420);
+    }
+    ADD.records.push(totals);
+    addRenderRecord();
+    const sumAll = totals.reduce((a, b) => a + b, 0);
+    if (sumAll === 0) {
+      $("#zero-stamp").style.display = "block";
+      sfx.fanfare(); burst(120);
+    }
+    $("#score-next").style.display = "inline-block";
+  })();
+}
+function addRenderRecord() {
+  const panel = $("#add-record-panel");
+  if (!ADD.records.length) { panel.style.display = "none"; return; }
+  panel.style.display = "block";
+  const t = $("#add-record");
+  const totals = [0, 1, 2, 3].map(i => ADD.records.reduce((a, r) => a + r[i], 0));
+  const order = [0, 1, 2, 3].slice().sort((a, b) => totals[b] - totals[a]);
+  const rank = {}; order.forEach((pi, k) => rank[pi] = k + 1);
+  let html = "<tr><th>名前</th>" + ADD.records.map((_, g) => "<th>" + (g + 1) + "</th>").join("") + "<th>計</th><th>順位</th></tr>";
+  PLAYER_DEFS.forEach((d, i) => {
+    html += "<tr><td>" + d.name + "</td>" + ADD.records.map(r => '<td class="num">' + fmt(r[i]) + "</td>").join("") + '<td class="num">' + fmt(totals[i]) + "</td><td>" + rank[i] + "位</td></tr>";
+  });
+  t.innerHTML = html;
+  buildPrintSheet();
+}
+function buildPrintSheet() {
+  const t = $("#print-table");
+  let html = "<tr><th style='width:22%'>氏名</th>" + [1, 2, 3, 4, 5, 6, 7].map(n => "<th>" + n + "</th>").join("") + "<th>計</th></tr>";
+  const names = [...PLAYER_DEFS.map(d => d.name), "", "", ""];
+  names.forEach((name, i) => {
+    html += "<tr><td>" + name + "</td>";
+    for (let g = 0; g < 7; g++) {
+      const v = i < 4 && ADD.records[g] ? fmt(ADD.records[g][i]) : "";
+      html += "<td>" + v + "</td>";
+    }
+    const tot = i < 4 && ADD.records.length ? fmt(ADD.records.reduce((a, r) => a + r[i], 0)) : "";
+    html += "<td>" + tot + "</td></tr>";
+  });
+  t.innerHTML = html;
+}
+$("#add-start").addEventListener("click", () => { ac(); sfx.flip(); addStart(); });
+$("#add-stop").addEventListener("click", () => { if (!ADD.busy) addStopGame(); });
+$("#score-next").addEventListener("click", () => { $("#modal-score").classList.remove("open"); ADD.gameNo++; addStart(); });
+$("#score-close").addEventListener("click", () => $("#modal-score").classList.remove("open"));
+$("#add-print").addEventListener("click", () => { buildPrintSheet(); print(); });
+$("#btn-print-title").addEventListener("click", () => { buildPrintSheet(); print(); });
+buildPrintSheet();
+</script>
+<script>
+"use strict";
+/* ================= MULTIPLICATION GAME ================= */
+const MUL = { deck: [], round: 1, scores: [0, 0], stage: 0, who: 0, base: null, busy: false, over: false, history: [] };
+function mulReset() {
+  MUL.deck = [];
+  for (const s of ["h", "d", "s", "c"]) for (let r = 1; r <= 10; r++) MUL.deck.push({ suit: s, rank: r });
+  shuffle(MUL.deck);
+  MUL.round = 1; MUL.scores = [0, 0]; MUL.stage = 0; MUL.who = 0; MUL.base = null; MUL.busy = false; MUL.over = false; MUL.history = [];
+  $("#mul-slot1").innerHTML = ""; $("#mul-slot2").innerHTML = "";
+  $("#mul-result").textContent = "？"; $("#mul-expr").textContent = ""; $("#mul-words").textContent = "";
+  $("#mul-history-panel").style.display = "none";
+  mulRenderScores();
+  $("#mul-msg").innerHTML = "山札（1〜10の40枚）から、あなたとコンピュータが交互に2枚ずつめくります。「山札をめくる」を押してください。";
+  $("#mul-flip").disabled = false; $("#mul-flip").textContent = "🃏 山札をめくる（あなたの番）";
+}
+function mulRenderScores() {
+  $("#mul-score-you").textContent = fmt(MUL.scores[0]);
+  $("#mul-score-cpu").textContent = fmt(MUL.scores[1]);
+  $("#mul-round-pill").textContent = Math.min(MUL.round, 10) + " / 10 回戦";
+  $("#mul-deck-left").textContent = "残りの山札：" + MUL.deck.length + "枚";
+}
+function mulWords(base, count) {
+  const bv = cardValue(base), cv = cardValue(count);
+  const cnt = Math.abs(cv);
+  if (cv >= 0) return fmtParen(bv) + " を " + cnt + "枚 もらいます";
+  if (bv >= 0) return fmtParen(bv) + " を " + cnt + "枚 とられます";
+  return fmtParen(bv) + " を " + cnt + "枚 とられる ＝ マイナスが減って、ふえます！";
+}
+async function mulFlip() {
+  if (MUL.busy || MUL.over || !MUL.deck.length) return;
+  MUL.busy = true;
+  const who = MUL.who, whoName = who === 0 ? "あなた" : "コンピュータ";
+  if (MUL.stage === 0) {
+    $("#mul-slot1").innerHTML = ""; $("#mul-slot2").innerHTML = "";
+    $("#mul-result").textContent = "？"; $("#mul-expr").textContent = ""; $("#mul-words").textContent = "";
+    MUL.base = MUL.deck.pop();
+    const el = cardEl(MUL.base, "big"); el.classList.add("pop");
+    $("#mul-slot1").appendChild(el); sfx.flip();
+    const bv = cardValue(MUL.base);
+    if (bv < 0) {
+      $("#mul-deck").classList.add("drama");
+      $("#mul-msg").innerHTML = whoName + "の基礎点は <b>" + fmtParen(bv) + "</b>。2枚目に<b>黒札</b>が出れば、とられるはずのマイナスが消えて<b>プラス</b>になります。黒が出よ…！";
+      sfx.tick(); await wait(450); sfx.tick(); await wait(450); sfx.tick();
+    } else {
+      $("#mul-msg").innerHTML = whoName + "の基礎点は <b>" + fmtParen(bv) + "</b>。もう1枚めくります。";
+      await wait(420);
+    }
+    MUL.stage = 1; MUL.busy = false;
+    if (who === 1) { await wait(500); mulFlip(); }
+    else $("#mul-flip").textContent = "🃏 2枚目をめくる";
+    mulRenderScores();
+    return;
+  }
+  // stage 1: second card
+  $("#mul-deck").classList.remove("drama");
+  const count = MUL.deck.pop();
+  const el2 = cardEl(count, "big"); el2.classList.add("pop");
+  $("#mul-slot2").appendChild(el2); sfx.flip();
+  const bv = cardValue(MUL.base), cv = cardValue(count);
+  const result = bv * cv;
+  await wait(500);
+  $("#mul-expr").textContent = fmtParen(bv) + " × " + fmtParen(cv) + " ＝ " + fmt(result);
+  $("#mul-words").textContent = mulWords(MUL.base, count);
+  $("#mul-result").textContent = fmt(result);
+  MUL.scores[who] += result;
+  MUL.history.push({ round: MUL.round, who, base: MUL.base, count, result });
+  mulRenderScores(); mulRenderHistory();
+  if (bv < 0 && cv < 0) { sfx.fanfare(); burst(80); $("#mul-msg").innerHTML = "<b>（−）×（−）＝＋</b> ！ " + whoName + "は " + fmtParen(bv) + " を " + Math.abs(cv) + "枚とられて、かえって <b>" + fmt(result) + "点</b> ふえました。"; }
+  else if (result < 0) { sfx.bad(); $("#mul-msg").innerHTML = whoName + "は <b>" + fmt(result) + "点</b> です。"; }
+  else { sfx.good(); $("#mul-msg").innerHTML = whoName + "は <b>" + fmt(result) + "点</b> です。"; }
+  MUL.stage = 0;
+  if (who === 0) {
+    MUL.who = 1; MUL.busy = false;
+    $("#mul-flip").disabled = true; $("#mul-flip").textContent = "コンピュータの番…";
+    await wait(1100); mulFlip();
+  } else {
+    MUL.who = 0; MUL.round++;
+    MUL.busy = false;
+    if (MUL.round > 10) { mulFinish(); return; }
+    mulRenderScores();
+    $("#mul-flip").disabled = false; $("#mul-flip").textContent = "🃏 山札をめくる（あなたの番）";
+  }
+}
+function mulRenderHistory() {
+  const panel = $("#mul-history-panel"); panel.style.display = "block";
+  let html = "<tr><th>回戦</th><th>あなた</th><th>コンピュータ</th></tr>";
+  for (let r = 1; r <= 10; r++) {
+    const cell = who => {
+      const h = MUL.history.find(x => x.round === r && x.who === who);
+      if (!h) return "";
+      return '<span class="formula">' + fmtParen(cardValue(h.base)) + "×" + fmtParen(cardValue(h.count)) + '</span> ＝ <b>' + fmt(h.result) + "</b>";
+    };
+    html += "<tr><td>" + r + "</td><td>" + cell(0) + "</td><td>" + cell(1) + "</td></tr>";
+  }
+  $("#mul-history").innerHTML = html;
+}
+function mulFinish() {
+  MUL.over = true;
+  $("#mul-flip").disabled = true; $("#mul-flip").textContent = "対戦終了";
+  const [you, cpu] = MUL.scores;
+  if (you > cpu) { $("#mul-msg").innerHTML = "🏆 <b>あなたの勝ち！</b> " + fmt(you) + "点 対 " + fmt(cpu) + "点 でした。（−）×（−）＝＋ の場面をうまく活かせましたか？"; sfx.fanfare(); burst(140); }
+  else if (you < cpu) { $("#mul-msg").innerHTML = "コンピュータの勝ちです。" + fmt(you) + "点 対 " + fmt(cpu) + "点 でした。もう一度挑戦してみましょう。"; }
+  else { $("#mul-msg").innerHTML = "引き分けです！" + fmt(you) + "点 対 " + fmt(cpu) + "点。見事な接戦でした。"; sfx.good(); }
+}
+$("#mul-flip").addEventListener("click", () => { ac(); mulFlip(); });
+$("#mul-deck").addEventListener("click", () => { if (MUL.who === 0) { ac(); mulFlip(); } });
+$("#mul-reset").addEventListener("click", () => { ac(); mulReset(); });
+mulReset();
+</script>
+<script>
+"use strict";
+/* ================= TILE WORKSHOP ================= */
+const TILE = { tiles: [], nextId: 1, mode: "problem", probIdx: -1, done: new Set(), phase: "idle", prob: null, taken: 0, addedB: false, selected: null };
+const PROBLEMS = [
+  { op: "add", a: 5, b: -3 }, { op: "add", a: -3, b: -4 }, { op: "add", a: -2, b: 4 },
+  { op: "sub", a: -7, b: -3 }, { op: "sub", a: 3, b: -2 }, { op: "sub", a: 2, b: 5 },
+  { op: "sub", a: -5, b: -3 }, { op: "add", a: 3, b: -5 }, { op: "sub", a: 4, b: 6 },
+  { op: "sub", a: -2, b: 3 }
+];
+const probExpr = p => fmtParen(p.a) + (p.op === "add" ? " + " : " − ") + fmtParen(p.b);
+const probAnswer = p => p.op === "add" ? p.a + p.b : p.a - p.b;
+const board = $("#tile-board");
+function tileValue() { return TILE.tiles.reduce((s, t) => s + t.sign, 0); }
+function tileLayout() {
+  const W = board.clientWidth || 340, per = Math.max(3, Math.floor((W - 16) / 62));
+  let slot = 0;
+  for (const t of TILE.tiles) {
+    if (t.custom) continue;
+    const x = 10 + (slot % per) * 62, y = 12 + Math.floor(slot / per) * 62;
+    t.el.style.left = x + "px"; t.el.style.top = y + "px";
+    slot++;
+  }
+  $("#tile-value").textContent = fmt(tileValue());
+  $("#tile-cnt-p").textContent = TILE.tiles.filter(t => t.sign > 0).length;
+  $("#tile-cnt-m").textContent = TILE.tiles.filter(t => t.sign < 0).length;
+}
+function tileAdd(sign, animate = true) {
+  const el = document.createElement("div");
+  el.className = "tile " + (sign > 0 ? "plus" : "minus") + (animate ? " appear" : "");
+  el.textContent = sign > 0 ? "+1" : "−1";
+  const t = { id: TILE.nextId++, sign, el, custom: null };
+  el._tile = t;
+  board.appendChild(el);
+  TILE.tiles.push(t);
+  tileLayout();
+  return t;
+}
+function tileRemove(t, poof = true) {
+  TILE.tiles = TILE.tiles.filter(x => x !== t);
+  if (TILE.selected === t) TILE.selected = null;
+  if (poof) { t.el.classList.add("vanish"); setTimeout(() => t.el.remove(), 280); }
+  else t.el.remove();
+  tileLayout();
+}
+function tileClear() { TILE.tiles.slice().forEach(t => tileRemove(t, false)); TILE.selected = null; }
+async function tileCancelAll() {
+  let n = 0;
+  while (true) {
+    const p = TILE.tiles.find(t => t.sign > 0), m = TILE.tiles.find(t => t.sign < 0);
+    if (!p || !m) break;
+    const mx = (p.el.offsetLeft + m.el.offsetLeft) / 2, my = (p.el.offsetTop + m.el.offsetTop) / 2;
+    [p, m].forEach(t => { t.custom = { x: mx, y: my }; t.el.style.left = mx + "px"; t.el.style.top = my + "px"; });
+    sfx.cancel(); await wait(330);
+    tileRemove(p); tileRemove(m); n++;
+    await wait(120);
+  }
+  if (n) toast("キャンセルの0で " + n + " 組が消えました");
+  tileLayout();
+  return n;
+}
+/* --- drag & tap (window-side handlers) --- */
+let dragCtx = null;
+board.addEventListener("pointerdown", e => {
+  const el = e.target.closest(".tile"); if (!el) return;
+  dragCtx = { t: el._tile, sx: e.clientX, sy: e.clientY, ox: el.offsetLeft, oy: el.offsetTop, moved: false };
+  e.preventDefault();
+});
+addEventListener("pointermove", e => {
+  if (!dragCtx) return;
+  const dx = e.clientX - dragCtx.sx, dy = e.clientY - dragCtx.sy;
+  if (!dragCtx.moved && Math.hypot(dx, dy) > 7) { dragCtx.moved = true; dragCtx.t.el.classList.add("dragging"); }
+  if (dragCtx.moved) {
+    const x = Math.max(0, Math.min(board.clientWidth - 54, dragCtx.ox + dx));
+    const y = Math.max(0, Math.min(board.clientHeight - 54, dragCtx.oy + dy));
+    dragCtx.t.el.style.left = x + "px"; dragCtx.t.el.style.top = y + "px";
+    dragCtx.t.custom = { x, y };
+  }
+});
+addEventListener("pointerup", () => {
+  if (!dragCtx) return;
+  const { t, moved } = dragCtx; dragCtx = null;
+  t.el.classList.remove("dragging");
+  if (!moved) tileTap(t);
+  tileLayout();
+});
+function tileTap(t) {
+  if (TILE.mode === "problem" && TILE.prob && TILE.prob.op === "sub" && TILE.phase === "act") {
+    const needSign = Math.sign(TILE.prob.b), need = Math.abs(TILE.prob.b);
+    if (TILE.taken < need) {
+      if (t.sign === needSign) {
+        tileRemove(t); TILE.taken++; sfx.pop();
+        const left = TILE.tiles.filter(x => x.sign === needSign).length;
+        if (TILE.taken >= need) tileMsg("取れました。<span class='formula'>" + probExpr(TILE.prob) + "</span> の答えは残ったタイルの値です。「こたえあわせ」を押してください。");
+        else if (left === 0) tileMsg("取るタイルが足りません！ <b>「0のペアを足す」</b>ボタンを押すと、＋と−のペアが1組増えます（値は変わりません）。そこから取ってください。これが減法の肝です。");
+        else tileMsg("あと " + (need - TILE.taken) + " 枚 取ってください。");
+        tileRenderControls();
+        return;
+      }
+      t.el.classList.remove("shake"); void t.el.offsetWidth; t.el.classList.add("shake"); sfx.bad();
+      tileMsg("取るのは <b>" + (needSign > 0 ? "白（＋）" : "赤（−）") + "</b> のタイルです。");
+      return;
+    }
+  }
+  // selection (free mode / inspection)
+  if (TILE.selected === t) { TILE.selected = null; t.el.classList.remove("selected"); }
+  else {
+    if (TILE.selected) TILE.selected.el.classList.remove("selected");
+    TILE.selected = t; t.el.classList.add("selected");
+  }
+  tileRenderControls();
+}
+/* --- messages & controls --- */
+function tileMsg(html) { $("#tile-msg").innerHTML = html; }
+function tileRenderProbs() {
+  const nav = $("#tile-probs"); nav.innerHTML = "";
+  PROBLEMS.forEach((p, i) => {
+    const c = document.createElement("button");
+    c.className = "prob-chip" + (TILE.probIdx === i ? " now" : "") + (TILE.done.has(i) ? " done" : "");
+    c.textContent = (i + 1) + ". " + probExpr(p);
+    c.addEventListener("click", () => tileStartProblem(i));
+    nav.appendChild(c);
+  });
+}
+function tileRenderControls() {
+  const c = $("#tile-controls"); c.innerHTML = "";
+  const mk = (label, fn, cls = "") => { const b = document.createElement("button"); b.className = "ctl-btn " + cls; b.innerHTML = label; b.addEventListener("click", fn); c.appendChild(b); return b; };
+  if (TILE.mode === "free") {
+    mk("⬜ ＋タイルを置く", () => { tileAdd(1); sfx.place(); });
+    mk("🟥 −タイルを置く", () => { tileAdd(-1); sfx.place(); });
+    mk("0️⃣ 0のペアを足す", () => { tileAdd(1); tileAdd(-1); sfx.place(); tileMsg("0のペアを足しました。値は変わりません。"); });
+    mk("✨ キャンセル", async () => { await tileCancelAll(); });
+    if (TILE.selected) mk("🗑 選んだタイルを消す", () => { tileRemove(TILE.selected); tileRenderControls(); }, "warn");
+    return;
+  }
+  const p = TILE.prob; if (!p || TILE.phase !== "act") return;
+  if (p.op === "add" && !TILE.addedB) {
+    mk("➕ " + fmtParen(p.b) + " のタイルを置く", async () => {
+      TILE.addedB = true;
+      const s = Math.sign(p.b);
+      for (let i = 0; i < Math.abs(p.b); i++) { tileAdd(s); await wait(110); }
+      sfx.place();
+      tileMsg("タイルを足しました。＋と−が両方あるときは、<b>「キャンセル」</b>でペアを消せます。");
+      tileRenderControls();
+    });
+  }
+  if (p.op === "add" && TILE.addedB) mk("✨ キャンセル", async () => { await tileCancelAll(); });
+  if (p.op === "sub") {
+    mk("0️⃣ 0のペアを足す", () => {
+      tileAdd(1); tileAdd(-1); sfx.place();
+      tileMsg("0のペアを足しました。値は変わりません。そのうえで、" + fmtParen(p.b) + " のタイルを取ってください。");
+    });
+    if (TILE.taken >= Math.abs(p.b)) mk("✨ キャンセル", async () => { await tileCancelAll(); });
+  }
+  const canCheck = TILE.phase === "act" && (p.op === "add" ? TILE.addedB : TILE.taken >= Math.abs(p.b));
+  const chk = mk("✔ こたえあわせ", tileCheck, "warn"); chk.disabled = !canCheck;
+}
+async function tileStartProblem(i) {
+  TILE.mode = "problem"; TILE.probIdx = i; TILE.prob = PROBLEMS[i];
+  TILE.taken = 0; TILE.addedB = false; TILE.phase = "act"; TILE.selected = null;
+  $("#tile-mode-pill").textContent = "課題モード";
+  tileClear(); tileRenderProbs();
+  const p = TILE.prob, s = Math.sign(p.a);
+  for (let k = 0; k < Math.abs(p.a); k++) { tileAdd(s); await wait(90); }
+  sfx.place();
+  if (p.op === "add") tileMsg("課題 <span class='formula'>" + probExpr(p) + "</span> ：まず <span class='formula'>" + fmtParen(p.a) + "</span> のタイルを置きました。ボタンで <span class='formula'>" + fmtParen(p.b) + "</span> のタイルを足してください。");
+  else {
+    const left = TILE.tiles.filter(x => x.sign === Math.sign(p.b)).length;
+    tileMsg("課題 <span class='formula'>" + probExpr(p) + "</span> ：<span class='formula'>" + fmtParen(p.a) + "</span> から、" + (Math.sign(p.b) > 0 ? "白（＋）" : "赤（−）") + "のタイルを " + Math.abs(p.b) + " 枚 取ってください（タイルをタップ）。" + (left < Math.abs(p.b) ? " でも、取るタイルが足りません。どうしましょう？" : ""));
+  }
+  tileRenderControls();
+}
+function tileCheck() {
+  const p = TILE.prob, ans = probAnswer(p);
+  const v = tileValue();
+  if (v === ans) {
+    TILE.done.add(TILE.probIdx); TILE.phase = "done";
+    let deriv = "";
+    if (p.op === "sub") deriv = "<br><span class='formula'>" + fmtParen(p.a) + " − " + fmtParen(p.b) + " ＝ " + fmtParen(p.a) + " + " + fmtParen(-p.b) + " ＝ " + fmt(ans) + "</span> ― 引くことは、反対の数を足すことと同じです。";
+    else if (Math.sign(p.a) !== Math.sign(p.b)) deriv = "<br>＋と−のペアがキャンセルで消えて、残りが答えになりました。";
+    tileMsg("🎉 <b>正解！</b> 答えは <span class='formula'>" + fmt(ans) + "</span> です。" + deriv);
+    sfx.good(); burst(60);
+    TILE.done.size === PROBLEMS.length && toast("課題を全部クリア！ お見事です");
+  } else {
+    sfx.bad();
+    tileMsg("いまの値は <span class='formula'>" + fmt(v) + "</span> で、答え <span class='formula'>" + fmt(ans) + "</span> と違います。タイルの枚数を確かめてみましょう。");
+  }
+  tileRenderProbs(); tileRenderControls();
+}
+$("#tile-free").addEventListener("click", () => {
+  TILE.mode = "free"; TILE.prob = null; TILE.probIdx = -1; TILE.phase = "idle"; TILE.selected = null;
+  $("#tile-mode-pill").textContent = "自由モード";
+  tileClear(); tileRenderProbs();
+  tileMsg("自由モードです。タイルを置いて、好きな数を表してみましょう。タイルはドラッグで動かせます。タップで選んで消すこともできます。");
+  tileRenderControls();
+});
+$("#tile-clear").addEventListener("click", () => { tileClear(); sfx.pop(); tileRenderControls(); });
+tileRenderProbs();
+addEventListener("resize", tileLayout);
+</script>
+</body>
+</html>
