@@ -306,6 +306,25 @@
         <option value="5">1〜5（21枚）</option>
       </select>
     </label>
+    <label class="pill" style="cursor:pointer">勝敗：
+      <select id="add-rule" style="font-size:15px; font-weight:bold; border:none; background:transparent">
+        <option value="high">最高点が勝ち</option>
+        <option value="low">最低点が勝ち</option>
+      </select>
+    </label>
+    <label class="pill" style="cursor:pointer">長さ：
+      <select id="add-rounds" style="font-size:15px; font-weight:bold; border:none; background:transparent">
+        <option value="2">2周</option>
+        <option value="3" selected>3周</option>
+        <option value="4">4周</option>
+      </select>
+    </label>
+    <label class="pill" style="cursor:pointer">ストップ：
+      <select id="add-stopfrom" style="font-size:15px; font-weight:bold; border:none; background:transparent">
+        <option value="1">1周目から</option>
+        <option value="2" selected>2周目から</option>
+      </select>
+    </label>
   </div>
   <div class="players" id="add-players"></div>
   <div class="myhand" id="add-myhand" style="display:none">
@@ -318,6 +337,7 @@
   </div>
   <div class="panel" id="add-record-panel" style="display:none">
     <h3>📝 得点記録</h3>
+    <div class="n" id="add-record-note" style="font-size:12.5px; color:#777; margin:-4px 0 6px"></div>
     <div style="overflow-x:auto"><table class="score-table" id="add-record"></table></div>
     <div class="controls">
       <button class="ctl-btn alt" id="add-print">🖨 記録用紙を印刷</button>
@@ -584,7 +604,7 @@ const PLAYER_DEFS = [
   { name: "あお", color: "#2b50aa" },
   { name: "きいろ", color: "#c9930a" }
 ];
-const ADD = { players: [], turn: 0, drawsInRound: 0, round: 1, gameNo: 1, busy: false, playing: false, records: [], over: false, stopper: null, cpuThresh: [0, 6, 5, 7] };
+const ADD = { players: [], turn: 0, drawsInRound: 0, round: 1, gameNo: 1, busy: false, playing: false, records: [], recordRules: [], over: false, stopper: null, cpuThresh: [0, 6, 5, 7], rule: "high", maxRounds: 3, stopFrom: 2 };
 function addBuildDeck(maxRank) {
   const deck = [];
   for (const s of ["h", "d", "s", "c"]) for (let r = 1; r <= maxRank; r++) deck.push({ suit: s, rank: r });
@@ -637,15 +657,16 @@ function addRender(floats = {}) {
 function addMsg(html) { $("#add-msg").innerHTML = html; }
 function addStart() {
   const maxRank = parseInt($("#add-decksize").value, 10);
+  ADD.rule = $("#add-rule").value; ADD.maxRounds = parseInt($("#add-rounds").value, 10); ADD.stopFrom = parseInt($("#add-stopfrom").value, 10);
   const deck = addBuildDeck(maxRank);
   ADD.players = PLAYER_DEFS.map(d => ({ ...d, hand: [] }));
   deck.forEach((c, i) => ADD.players[i % 4].hand.push(c));
   ADD.turn = 0; ADD.drawsInRound = 0; ADD.round = 1; ADD.playing = true; ADD.busy = false; ADD.over = false; ADD.stopper = null;
   ADD.cpuThresh = [0, 6 + Math.floor(Math.random() * 3), 5 + Math.floor(Math.random() * 3), 7 + Math.floor(Math.random() * 3)];
   $("#add-round-pill").textContent = "ゲーム " + ADD.gameNo;
-  $("#add-stop").disabled = true;
+  $("#add-stop").disabled = ADD.stopFrom > 1;
   addRender();
-  addMsg("札を配りました。まず <b>あなた</b> の番です。左どなりの「みどり」の札から1枚抜いてください。<b>相手の合計は見えません</b>。自分の合計を素早く計算して、「自分が一番だ」と思ったら、2周目から <b>✋ ストップ</b> をかけられます。赤札を抜かれると、その人の点は<b>増えます</b>。");
+  addMsg("札を配りました。まず <b>あなた</b> の番です。左どなりの「みどり」の札から1枚抜いてください。<b>相手の合計は見えません</b>。自分の合計を素早く計算して、「自分が一番だ」と思ったら、" + (ADD.stopFrom === 1 ? "1周目から" : "2周目から") + " <b>✋ ストップ</b> をかけられます。" + (ADD.rule === "low" ? "今回は <b>最低点が勝ち</b> のルールです。" : "") + "赤札を抜かれると、その人の点は<b>増えます</b>。");
   addShowDrawZone();
 }
 function addShowDrawZone() {
@@ -692,8 +713,8 @@ async function addDoDraw(drawerIdx, cardIdx) {
   ADD.drawsInRound++;
   if (ADD.drawsInRound >= 4) {
     ADD.drawsInRound = 0; ADD.round++;
-    if (ADD.round >= 2) $("#add-stop").disabled = false;
-    if (ADD.round > 3) { ADD.busy = false; addStopGame(); return; }
+    if (ADD.round >= ADD.stopFrom) $("#add-stop").disabled = false;
+    if (ADD.round > ADD.maxRounds) { ADD.busy = false; addStopGame(); return; }
     if (ADD.playing) addMsg("―― " + ADD.round + " 周目に入ります ――");
     await wait(600);
   }
@@ -708,8 +729,9 @@ async function addCpuTurn() {
   await wait(650);
   if (!ADD.playing || ADD.busy || ADD.turn === 0) return;
   const i = ADD.turn, sum = addSum(ADD.players[i]);
-  const bar = ADD.cpuThresh[i] - (ADD.round >= 3 ? 2 : 0);
-  if (ADD.round >= 2 && sum >= bar) {
+  const bar = ADD.cpuThresh[i] - (ADD.round >= ADD.maxRounds ? 2 : 0);
+  const good = ADD.rule === "low" ? sum <= -bar : sum >= bar;
+  if (ADD.round >= ADD.stopFrom && good) {
     ADD.busy = true;
     addMsg("✋ <b>「" + ADD.players[i].name + "」がストップをかけた！</b> 自分の合計が一番だと思ったようです。全員の手札を公開します。");
     sfx.stamp(); ADD.stopper = i; addRender();
@@ -751,17 +773,20 @@ function addStopGame(stopperIdx = null) {
       tot.textContent = fmt(totals[i]) + "点";
       sfx.stamp(); await wait(420);
     }
-    ADD.records.push(totals);
+    ADD.records.push(totals); ADD.recordRules.push(ADD.rule);
     addRenderRecord();
     const sumAll = totals.reduce((a, b) => a + b, 0);
     if (sumAll === 0) $("#zero-stamp").style.display = "block";
-    const myRank = 1 + totals.filter(t => t > totals[0]).length;
+    const low = ADD.rule === "low";
+    const myRank = 1 + totals.filter(t => low ? t < totals[0] : t > totals[0]).length;
+    banner.textContent += low ? "（最低点が勝ちルール）" : "";
     if (myRank === 1) {
       banner.className = "score-banner win";
       banner.textContent += "　🎉 あなたの勝ち！（" + fmt(totals[0]) + "点）";
       sfx.fanfare(); burst(170);
     } else {
-      const winner = ADD.players[totals.indexOf(Math.max(...totals))].name;
+      const best = low ? Math.min(...totals) : Math.max(...totals);
+      const winner = ADD.players[totals.indexOf(best)].name;
       banner.className = "score-banner lose";
       banner.textContent += "　😞 残念、" + myRank + "位でした（勝者は「" + winner + "」）";
       sfx.sad();
@@ -775,7 +800,9 @@ function addRenderRecord() {
   panel.style.display = "block";
   const t = $("#add-record");
   const totals = [0, 1, 2, 3].map(i => ADD.records.reduce((a, r) => a + r[i], 0));
-  const order = [0, 1, 2, 3].slice().sort((a, b) => totals[b] - totals[a]);
+  const lowNow = $("#add-rule").value === "low";
+  const order = [0, 1, 2, 3].slice().sort((a, b) => lowNow ? totals[a] - totals[b] : totals[b] - totals[a]);
+  $("#add-record-note").textContent = "順位は「" + (lowNow ? "最低点" : "最高点") + "が勝ち」で計算しています（ゲームごとの勝敗は、そのゲームのルールで決まります）。";
   const rank = {}; order.forEach((pi, k) => rank[pi] = k + 1);
   let html = "<tr><th>名前</th>" + ADD.records.map((_, g) => "<th>" + (g + 1) + "</th>").join("") + "<th>計</th><th>順位</th></tr>";
   PLAYER_DEFS.forEach((d, i) => {
