@@ -92,6 +92,10 @@
   .mysum.plus { color:#14655a; } .mysum.minus { color:#b3232a; }
   .myhand-cards { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; min-height:124px; align-content:flex-start; }
   .score-banner { text-align:center; font-weight:bold; font-size:19px; margin:2px 0 10px; min-height:26px; }
+  .think-chip { margin-left:auto; font-size:12.5px; color:#8a6d1a; font-weight:bold; display:inline-flex; gap:1px; align-items:baseline; }
+  .think-chip .td { animation:tblink 1.05s infinite; }
+  .think-chip .td:nth-child(3) { animation-delay:.22s; } .think-chip .td:nth-child(4) { animation-delay:.44s; }
+  @keyframes tblink { 0%,100% { opacity:.12; } 50% { opacity:1; } }
   .score-banner.win { color:#14655a; font-size:22px; }
   .score-banner.lose { color:#8a6d1a; }
   .player-box { background:#fff; border:2px solid #e4dcc8; border-radius:14px; padding:10px 10px 12px; position:relative; }
@@ -604,7 +608,7 @@ const PLAYER_DEFS = [
   { name: "あお", color: "#2b50aa" },
   { name: "きいろ", color: "#c9930a" }
 ];
-const ADD = { players: [], turn: 0, drawsInRound: 0, round: 1, gameNo: 1, busy: false, playing: false, records: [], recordRules: [], over: false, stopper: null, cpuThresh: [0, 6, 5, 7], rule: "high", maxRounds: 3, stopFrom: 2 };
+const ADD = { players: [], turn: 0, drawsInRound: 0, round: 1, gameNo: 1, busy: false, playing: false, records: [], recordRules: [], over: false, stopper: null, cpuThresh: [0, 6, 5, 7], rule: "high", maxRounds: 3, stopFrom: 2, thinking: null };
 function addBuildDeck(maxRank) {
   const deck = [];
   for (const s of ["h", "d", "s", "c"]) for (let r = 1; r <= maxRank; r++) deck.push({ suit: s, rank: r });
@@ -626,6 +630,7 @@ function addRender(floats = {}) {
     let head = '<div class="pname"><span class="dot" style="background:' + p.color + '"></span>' + p.name;
     if (ADD.stopper === i) head += ' <span title="ストップをかけた人">✋</span>';
     if (ADD.over) { const sum = addSum(p); head += '<span class="score-chip ' + (sum > 0 ? "plus" : sum < 0 ? "minus" : "") + '">' + fmt(sum) + '点</span>'; }
+    else if (ADD.thinking === i) head += '<span class="think-chip">考え中<span class="td">・</span><span class="td">・</span><span class="td">・</span></span>';
     else head += '<span style="margin-left:auto; font-size:12.5px; color:#999">札 ' + p.hand.length + ' 枚</span>';
     head += '</div>';
     box.innerHTML = head;
@@ -661,7 +666,7 @@ function addStart() {
   const deck = addBuildDeck(maxRank);
   ADD.players = PLAYER_DEFS.map(d => ({ ...d, hand: [] }));
   deck.forEach((c, i) => ADD.players[i % 4].hand.push(c));
-  ADD.turn = 0; ADD.drawsInRound = 0; ADD.round = 1; ADD.playing = true; ADD.busy = false; ADD.over = false; ADD.stopper = null;
+  ADD.turn = 0; ADD.drawsInRound = 0; ADD.round = 1; ADD.playing = true; ADD.busy = false; ADD.over = false; ADD.stopper = null; ADD.thinking = null;
   ADD.cpuThresh = [0, 6 + Math.floor(Math.random() * 3), 5 + Math.floor(Math.random() * 3), 7 + Math.floor(Math.random() * 3)];
   $("#add-round-pill").textContent = "ゲーム " + ADD.gameNo;
   $("#add-stop").disabled = ADD.stopFrom > 1;
@@ -709,7 +714,7 @@ async function addDoDraw(drawerIdx, cardIdx) {
     if (src === 0) { if (v < 0) { addMsg("「" + drawer.name + "」が、あなたの <b>赤札</b> を抜いていきました。あなたの点が <b>" + fmt(-v) + " 増えました</b>！ 負の数を引かれると増える、これがこの単元の肝です。"); sfx.good(); } else addMsg("「" + drawer.name + "」が、あなたの <b>" + cardName + "</b> を抜いていきました。"); }
     else addMsg("「" + drawer.name + "」が「" + source.name + "」から札を1枚抜きました。（何の札かは、終わるまで分かりません）");
   }
-  await wait(drawerIdx === 0 ? 500 : 900);
+  await wait(drawerIdx === 0 ? 750 : 1050);
   ADD.drawsInRound++;
   if (ADD.drawsInRound >= 4) {
     ADD.drawsInRound = 0; ADD.round++;
@@ -726,16 +731,21 @@ async function addDoDraw(drawerIdx, cardIdx) {
   else addCpuTurn();
 }
 async function addCpuTurn() {
-  await wait(650);
+  await wait(400);
   if (!ADD.playing || ADD.busy || ADD.turn === 0) return;
   const i = ADD.turn, sum = addSum(ADD.players[i]);
   const bar = ADD.cpuThresh[i] - (ADD.round >= ADD.maxRounds ? 2 : 0);
   const good = ADD.rule === "low" ? sum <= -bar : sum >= bar;
-  if (ADD.round >= ADD.stopFrom && good) {
+  const willStop = ADD.round >= ADD.stopFrom && good;
+  ADD.thinking = i; addRender();
+  await wait(950 + Math.floor(Math.random() * 650) + (willStop ? 550 : 0));
+  if (!ADD.playing || ADD.turn !== i) { ADD.thinking = null; return; }
+  ADD.thinking = null;
+  if (willStop) {
     ADD.busy = true;
     addMsg("✋ <b>「" + ADD.players[i].name + "」がストップをかけた！</b> 自分の合計が一番だと思ったようです。全員の手札を公開します。");
     sfx.stamp(); ADD.stopper = i; addRender();
-    await wait(1300);
+    await wait(1400);
     ADD.busy = false; addStopGame(i);
     return;
   }
@@ -743,7 +753,7 @@ async function addCpuTurn() {
 }
 function addStopGame(stopperIdx = null) {
   if (!ADD.playing) return;
-  ADD.playing = false; ADD.over = true;
+  ADD.playing = false; ADD.over = true; ADD.thinking = null;
   if (stopperIdx != null) ADD.stopper = stopperIdx;
   $("#add-drawzone").style.display = "none";
   $("#add-stop").disabled = true;
@@ -813,7 +823,15 @@ function addRenderRecord() {
 }
 function buildPrintSheet() { /* 記録用紙は固定レイアウト（本人の用紙の形式）。組み立ては不要。 */ }
 $("#add-start").addEventListener("click", () => { ac(); sfx.flip(); addStart(); });
-$("#add-stop").addEventListener("click", () => { if (!ADD.busy) { ADD.stopper = 0; addRender(); addStopGame(0); } });
+$("#add-stop").addEventListener("click", async () => {
+  if (ADD.busy || !ADD.playing) return;
+  ADD.busy = true; ADD.stopper = 0; ADD.thinking = null;
+  $("#add-drawzone").style.display = "none";
+  addMsg("✋ <b>あなたがストップをかけた！</b> 全員の手札を公開します。");
+  sfx.stamp(); addRender();
+  await wait(1200);
+  ADD.busy = false; addStopGame(0);
+});
 $("#score-next").addEventListener("click", () => { $("#modal-score").classList.remove("open"); ADD.gameNo++; addStart(); });
 $("#score-close").addEventListener("click", () => $("#modal-score").classList.remove("open"));
 $("#add-print").addEventListener("click", () => { buildPrintSheet(); print(); });
