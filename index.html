@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>正負の数トランプ＆タイル ― 赤と黒のゲーム</title>
-<meta name="description" content="トランプとタイルで遊びながら、正負の数の加法・減法・乗法が身につく学習アプリ。赤札は＋、黒札は−。全員の得点の合計は必ず0になります。">
+<meta name="description" content="トランプとタイルで遊びながら、正負の数の加法・減法・乗法が身につく学習アプリ。赤札は−、黒札は＋。全員の得点の合計は必ず0になります。">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <meta property="og:title" content="正負の数トランプ＆タイル ― 赤と黒のゲーム">
@@ -156,15 +156,24 @@
   /* print sheet */
   #print-sheet { display:none; }
   @media print {
+    @page { size:A4; margin:12mm; }
     body { background:#fff; }
-    body * { visibility:hidden; }
-    #print-sheet, #print-sheet * { visibility:visible; }
-    #print-sheet { display:block; position:absolute; left:0; top:0; width:100%; padding:10mm; }
+    body > *:not(#print-sheet) { display:none !important; }
+    #print-sheet { display:block; position:static; width:100%; padding:0; }
   }
-  #print-sheet h2 { font-size:17pt; margin:0 0 4mm; }
+  .sheet-head { display:flex; align-items:center; gap:6mm; }
+  .sheet-suits { font-size:20pt; letter-spacing:2px; }
+  .sheet-suits .red { color:#b3232a; } .sheet-suits .black { color:#26262b; }
+  .sheet-title { flex:1; text-align:center; font-size:15pt; border:2pt solid #333; padding:2.5mm 2mm; margin:0; }
+  .sheet-name { text-align:right; font-size:12pt; margin:5mm 0 3mm; }
+  .sheet-name span { margin-left:7mm; }
   #print-sheet table { border-collapse:collapse; width:100%; }
-  #print-sheet th, #print-sheet td { border:1.2pt solid #333; height:11mm; text-align:center; font-size:12pt; }
-  #print-sheet th { background:#eee; }
+  #print-sheet th, #print-sheet td { border:1.2pt solid #333; text-align:center; font-size:11.5pt; }
+  #print-sheet th { background:#e8e8e8; padding:1.6mm 0; }
+  #print-sheet td { height:13.5mm; }
+  #print-sheet .c-name { width:24%; }
+  #print-sheet .c-rank { width:5.5%; }
+  #print-sheet .c-sum { background:#dcdcdc; }
   .checkline { margin-top:8mm; }
   .checkline .bar { display:inline-block; width:50mm; border-top:2.5pt solid #c62828; position:relative; vertical-align:middle; }
   .checkline .bar::before, .checkline .bar::after { content:""; position:absolute; top:-3mm; width:0; height:6mm; border-left:2.5pt solid #c62828; }
@@ -183,6 +192,42 @@
   .preview-row { display:flex; gap:14px; justify-content:center; }
   .preview-row canvas { width:126px; height:176px; border-radius:8px; box-shadow:0 2px 8px rgba(60,40,10,.25); }
   .howto { background:#fffdf6; border:1px solid #e2d5b8; border-radius:12px; padding:6px 14px; font-size:14px; line-height:1.75; }
+  /* 小さい画面（iPhone）では詰めて、スクロールなしで遊べるように */
+  @media (max-width: 560px) {
+    .topbar { margin-bottom:6px; }
+    .topbar h2 { font-size:16.5px; }
+    .msg { font-size:13.5px; line-height:1.6; padding:7px 10px; min-height:0; }
+    .controls { margin:8px 0; gap:7px; }
+    .ctl-btn { padding:8px 13px; font-size:14.5px; }
+    #scr-add .players { gap:7px; margin-top:7px; grid-template-columns:1fr 1fr; }
+    #scr-add .player-box { padding:7px 8px; }
+    #scr-add .player-box .pname { font-size:13px; gap:5px; }
+    #scr-add .score-chip { font-size:16px; padding:0 7px; }
+    #scr-add .controls { margin:6px 0; }
+    #scr-add .controls .ctl-btn { padding:7px 10px; font-size:13.5px; }
+    #scr-add .controls .pill { font-size:12.5px; padding:4px 8px; }
+    #scr-add .hand { margin-top:4px; min-height:54px; gap:0; flex-wrap:nowrap; }
+    #scr-add .hand .pcard { width:37px; height:52px; margin-left:-15px; }
+    #scr-add .hand .pcard:first-child { margin-left:0; }
+    #scr-add .hand .pcard .corner { font-size:10px; left:3px; }
+    #scr-add .hand .pcard .pip { font-size:15px; }
+    #scr-add .draw-zone { margin-top:7px; padding:8px; font-size:13px; }
+    #scr-add .draw-zone .backs { margin-top:6px; gap:5px; }
+    #scr-add .draw-zone .pcard.small { width:41px; height:58px; }
+    #scr-mul .scoreboard { margin:8px 0 4px; gap:8px; }
+    #scr-mul .sb-box { padding:5px 10px; }
+    #scr-mul .sb-score { font-size:24px; }
+    #scr-mul .mul-stage { margin:6px 0 2px; gap:4px; }
+    #scr-mul .slot-label { font-size:11.5px; margin-bottom:3px; }
+    #scr-mul .slot-card { min-height:100px; }
+    #scr-mul .pcard.big { width:70px; height:98px; }
+    #scr-mul .pcard.big .pip { font-size:35px; }
+    #scr-mul .pcard.big .corner { font-size:16px; }
+    #scr-mul .mul-vs { font-size:19px; }
+    #scr-mul .mul-expr { font-size:19px; min-height:26px; margin:2px 0 0; }
+    #scr-mul .mul-words { min-height:20px; margin:0; font-size:13.5px; }
+    #scr-mul .panel { padding:9px 10px; }
+  }
 </style>
 </head>
 <body>
@@ -199,7 +244,7 @@
   </div>
   <h1 class="app-title">正負の数トランプ＆タイル</h1>
   <p class="app-sub">― 赤と黒のゲーム ―</p>
-  <p class="app-desc">赤札は <b class="red">＋（プラス）</b>、黒札は <b class="black">−（マイナス）</b>。トランプとタイルで遊びながら、正負の数の計算が自然と身につく学習アプリです。</p>
+  <p class="app-desc">赤札は <b class="red">−（マイナス）</b>、黒札は <b class="black">＋（プラス）</b>。トランプとタイルで遊びながら、正負の数の計算が自然と身につく学習アプリです。</p>
   <div class="mode-cards">
     <div class="mode-card">
       <div class="mc-icon">🃏</div>
@@ -210,7 +255,7 @@
     <div class="mode-card">
       <div class="mc-icon">🎴</div>
       <h2>トランプ（乗法）</h2>
-      <p>山札から2枚めくって得点を競います。1枚目が基礎点、2枚目がもらう枚数。黒が出ると「取られる」ことに…。(−)×(−)＝＋ の瞬間を体験！</p>
+      <p>山札から2枚めくって得点を競います。1枚目が基礎点、2枚目がもらう枚数。赤が出ると「取られる」ことに…。(−)×(−)＝＋ の瞬間を体験！</p>
       <button class="big-btn dark" data-go="mul">あそぶ</button>
     </div>
     <div class="mode-card">
@@ -234,7 +279,7 @@
     <h2>トランプ（加法）― 赤と黒のゲーム</h2>
     <span class="pill" id="add-round-pill">ゲーム 1</span>
   </div>
-  <div class="msg" id="add-msg">「ゲームスタート」を押してください。札はぜんぶで17枚（1〜4とジョーカー）。赤札は＋、黒札は−、ジョーカーは0です。</div>
+  <div class="msg" id="add-msg">「ゲームスタート」を押してください。札はぜんぶで17枚（1〜4とジョーカー）。赤札は−、黒札は＋、ジョーカーは0です。</div>
   <div class="controls">
     <button class="ctl-btn" id="add-start">🎲 ゲームスタート</button>
     <button class="ctl-btn warn" id="add-stop" disabled>✋ ストップ！（得点計算へ）</button>
@@ -266,7 +311,7 @@
     <h2>トランプ（乗法）― めくって勝負</h2>
     <span class="pill" id="mul-round-pill">1 / 10 回戦</span>
   </div>
-  <div class="msg" id="mul-msg">山札（1〜10の40枚）から、あなたとコンピュータが交互に2枚ずつめくります。1枚目が「基礎点」、2枚目が「もらう枚数」。2枚目が黒札だと、その枚数だけ<b>取られて</b>しまいます。</div>
+  <div class="msg" id="mul-msg">山札（1〜10の40枚）から、あなたとコンピュータが交互に2枚ずつめくります。1枚目が「基礎点」、2枚目が「もらう枚数」。2枚目が赤札だと、その枚数だけ<b>取られて</b>しまいます。</div>
   <div class="scoreboard">
     <div class="sb-box"><div class="sb-name">あなた</div><div class="sb-score" id="mul-score-you">0</div></div>
     <div class="sb-box"><div class="sb-name">コンピュータ</div><div class="sb-score" id="mul-score-cpu">0</div></div>
@@ -361,8 +406,9 @@
       <h3>「赤と黒のゲーム」</h3>
       <p>このトランプゲームは、清水先生が現役時代の授業でよく使った実践です（ご本人のブログ「アメブロ」にも「赤と黒のゲーム」として記事があります）。名前の「赤と黒」は、赤札と黒札の色からきています。スタンダールの小説『赤と黒』とは、題名の色が同じだけの別のゲームです。</p>
       <p>ババ抜き式に札を抜き合うだけなのに、得点計算では知らず知らずのうちに「代数和」のトレーニングになっています。班ごとに得点記入用紙をつけるのも、その仕掛けのひとつでした。</p>
+      <p>札の符号は、日本語の「赤字・黒字」の言葉のイメージに合わせて、<b>赤札（ハート・ダイヤ）がマイナス</b>、<b>黒札（スペード・クラブ）がプラス</b>としています。タイルの白（＋）・赤（−）ともそろっています。</p>
       <h3>いちばんの肝</h3>
-      <p>黒札（マイナスの札）を相手に抜かれると、自分の持ち点は<b>増えます</b>。「負の数を引くと、増える」という、正負の数いちばんの不思議を、実感として納得できるのがこのゲームの良さです。加法ゲームで黒札が抜かれる瞬間に注目してみてください。</p>
+      <p>赤札（マイナスの札）を相手に抜かれると、自分の持ち点は<b>増えます</b>。「負の数を引くと、増える」という、正負の数いちばんの不思議を、実感として納得できるのがこのゲームの良さです。加法ゲームで赤札が抜かれる瞬間に注目してみてください。</p>
       <h3>タイルと「キャンセルの0」</h3>
       <p>白（＋）と赤（−）のタイルが1枚ずつペアになると、合わせて0になって消えます（キャンセルの0）。そして、引くタイルが足りないときは、0のペアを足してから取る、という手順で「引くことは、反対の数を足すこと」と同じだと分かります。</p>
       <h3>出典</h3>
@@ -390,10 +436,31 @@
 
 <!-- ============ PRINT SHEET ============ -->
 <div id="print-sheet">
-  <h2>正負の数トランプゲーム 得点記録用紙</h2>
-  <table id="print-table"></table>
+  <div class="sheet-head">
+    <div class="sheet-suits"><span class="red">♥</span><span class="black">♠</span><span class="red">♦</span><span class="black">♣</span></div>
+    <h2 class="sheet-title">正の数・負の数　赤と黒のゲーム　得点記録用紙</h2>
+  </div>
+  <div class="sheet-name"><span>＿＿ 年</span><span>＿＿ 組</span><span>＿＿ 番</span><span>氏名 ＿＿＿＿＿＿＿＿</span></div>
+  <table id="print-table">
+    <tr>
+      <th class="c-name">回　数　→</th>
+      <th colspan="2">1回目</th><th colspan="2">2回目</th><th colspan="2">3回目</th><th colspan="2">4回目</th><th colspan="2">5回目</th>
+      <th colspan="2" class="c-sum">集　計</th>
+    </tr>
+    <tr>
+      <th class="c-name">氏　名　↓</th>
+      <th>得点</th><th class="c-rank">順位</th><th>得点</th><th class="c-rank">順位</th><th>得点</th><th class="c-rank">順位</th><th>得点</th><th class="c-rank">順位</th><th>得点</th><th class="c-rank">順位</th>
+      <th>得点合計</th><th class="c-rank">総合順位</th>
+    </tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  </table>
+  <p style="font-size:10.5pt; color:#444; margin:4mm 0 0">赤札は−、黒札は＋、ジョーカーは0。各ゲーム、全員の得点の合計は0になります。計算ミスのチェックに使えます。</p>
   <div class="checkline"><span class="bar"></span>　印刷したら、この線が5cmになっているか確かめてください（ずれているときは「実際のサイズ」で印刷し直してください）。</div>
-  <p style="font-size:10.5pt; color:#444">赤札は＋、黒札は−、ジョーカーは0。各ゲーム、全員の得点の合計は0になります。計算ミスのチェックに使えます。</p>
 </div>
 
 <script>
@@ -461,7 +528,7 @@ function confettiStep() {
 /* ================= cards ================= */
 const SUITS = { h: "♥", d: "♦", s: "♠", c: "♣" };
 const suitColor = s => (s === "h" || s === "d") ? "red" : "black";
-function cardValue(card) { if (card.suit === "j") return 0; return suitColor(card.suit) === "red" ? card.rank : -card.rank; }
+function cardValue(card) { if (card.suit === "j") return 0; return suitColor(card.suit) === "red" ? -card.rank : card.rank; }
 function cardEl(card, size = "") {
   const d = document.createElement("div");
   if (card.suit === "j") {
@@ -540,7 +607,7 @@ function addStart() {
   $("#add-round-pill").textContent = "ゲーム " + ADD.gameNo;
   $("#add-stop").disabled = true;
   addRender();
-  addMsg("札を配りました。まず <b>あなた</b> の番です。左どなりの「みどり」の札から1枚抜いてください。黒札を抜かれると、その人の点は<b>増えます</b>。");
+  addMsg("札を配りました。まず <b>あなた</b> の番です。左どなりの「みどり」の札から1枚抜いてください。赤札を抜かれると、その人の点は<b>増えます</b>。");
   addShowDrawZone();
 }
 function addShowDrawZone() {
@@ -582,7 +649,7 @@ async function addDoDraw(drawerIdx, cardIdx) {
     else if (v > 0) addMsg("あなたは <b>" + cardName + "</b> を抜きました。「" + source.name + "」の点がそのぶん減りました。");
     else addMsg("あなたは <b>ジョーカー</b> を抜きました。0点なので、どちらの点も変わりません。");
   } else {
-    if (v < 0 && src === 0) { addMsg("「" + drawer.name + "」が、あなたの <b>黒札</b> を抜いていきました。あなたの点が <b>" + fmt(-v) + " 増えました</b>！ 負の数を引かれると増える、これがこの単元の肝です。"); sfx.good(); }
+    if (v < 0 && src === 0) { addMsg("「" + drawer.name + "」が、あなたの <b>赤札</b> を抜いていきました。あなたの点が <b>" + fmt(-v) + " 増えました</b>！ 負の数を引かれると増える、これがこの単元の肝です。"); sfx.good(); }
     else addMsg("「" + drawer.name + "」が「" + source.name + "」から <b>" + cardName + "</b> を抜きました。");
   }
   await wait(drawerIdx === 0 ? 500 : 900);
@@ -659,21 +726,7 @@ function addRenderRecord() {
   t.innerHTML = html;
   buildPrintSheet();
 }
-function buildPrintSheet() {
-  const t = $("#print-table");
-  let html = "<tr><th style='width:22%'>氏名</th>" + [1, 2, 3, 4, 5, 6, 7].map(n => "<th>" + n + "</th>").join("") + "<th>計</th></tr>";
-  const names = [...PLAYER_DEFS.map(d => d.name), "", "", ""];
-  names.forEach((name, i) => {
-    html += "<tr><td>" + name + "</td>";
-    for (let g = 0; g < 7; g++) {
-      const v = i < 4 && ADD.records[g] ? fmt(ADD.records[g][i]) : "";
-      html += "<td>" + v + "</td>";
-    }
-    const tot = i < 4 && ADD.records.length ? fmt(ADD.records.reduce((a, r) => a + r[i], 0)) : "";
-    html += "<td>" + tot + "</td></tr>";
-  });
-  t.innerHTML = html;
-}
+function buildPrintSheet() { /* 記録用紙は固定レイアウト（本人の用紙の形式）。組み立ては不要。 */ }
 $("#add-start").addEventListener("click", () => { ac(); sfx.flip(); addStart(); });
 $("#add-stop").addEventListener("click", () => { if (!ADD.busy) addStopGame(); });
 $("#score-next").addEventListener("click", () => { $("#modal-score").classList.remove("open"); ADD.gameNo++; addStart(); });
@@ -724,7 +777,7 @@ async function mulFlip() {
     const bv = cardValue(MUL.base);
     if (bv < 0) {
       $("#mul-deck").classList.add("drama");
-      $("#mul-msg").innerHTML = whoName + "の基礎点は <b>" + fmtParen(bv) + "</b>。2枚目に<b>黒札</b>が出れば、とられるはずのマイナスが消えて<b>プラス</b>になります。黒が出よ…！";
+      $("#mul-msg").innerHTML = whoName + "の基礎点は <b>" + fmtParen(bv) + "</b>。2枚目に<b>赤札</b>が出れば、とられるはずのマイナスが消えて<b>プラス</b>になります。赤が出よ…！";
       sfx.tick(); await wait(450); sfx.tick(); await wait(450); sfx.tick();
     } else {
       $("#mul-msg").innerHTML = whoName + "の基礎点は <b>" + fmtParen(bv) + "</b>。もう1枚めくります。";
@@ -1111,7 +1164,7 @@ function drawFaceCanvas(ctx, card, W, H) {
     drawSuitCanvas(ctx, card.suit, 30, 62, 34, col);
     drawSuitCanvas(ctx, card.suit, W / 2, H * 0.42, 108, col);
     ctx.font = "bold 34px sans-serif";
-    ctx.fillText((card.suit === "heart" || card.suit === "diamond" ? "+" : "−") + card.rank, W / 2, H * 0.78);
+    ctx.fillText((card.suit === "heart" || card.suit === "diamond" ? "−" : "+") + card.rank, W / 2, H * 0.78);
     ctx.save(); ctx.translate(W - 30, H - 40); ctx.rotate(Math.PI);
     ctx.font = "bold 30px sans-serif"; ctx.fillText(card.rank, 0, 0); ctx.restore();
     drawSuitCanvas(ctx, card.suit, W - 30, H - 62, 34, col);
@@ -1229,7 +1282,7 @@ function buildCardsPDF() {
     }
     s += `${rgb} RG 1.4 w ${pdfNum(x + 3 * MM)} ${pdfNum(yB + 3 * MM)} ${pdfNum(CW - 6 * MM)} ${pdfNum(CH - 6 * MM)} re S `;
     s += `${rgb} rg ` + suitPathPDF(card.suit, cx, cy + CH * 0.10, 30 * MM);
-    s += `BT /F2 26 Tf ${pdfNum(cx - (card.rank < 10 ? 20 : 8))} ${pdfNum(cy - CH * 0.30)} Td (${card.suit === "heart" || card.suit === "diamond" ? "+" : "-"}${card.rank}) Tj ET `;
+    s += `BT /F2 26 Tf ${pdfNum(cx - (card.rank < 10 ? 20 : 8))} ${pdfNum(cy - CH * 0.30)} Td (${card.suit === "heart" || card.suit === "diamond" ? "-" : "+"}${card.rank}) Tj ET `;
     // 角の数字＋小スート（左上・右下回転）
     s += `BT /F2 15 Tf ${pdfNum(x + 4.6 * MM)} ${pdfNum(yB + CH - 9.5 * MM)} Td (${card.rank}) Tj ET `;
     s += `${rgb} rg ` + suitPathPDF(card.suit, x + 6.8 * MM, yB + CH - 14.5 * MM, 8 * MM);
