@@ -608,7 +608,7 @@ const PLAYER_DEFS = [
   { name: "あお", color: "#2b50aa" },
   { name: "きいろ", color: "#c9930a" }
 ];
-const ADD = { players: [], turn: 0, drawsInRound: 0, round: 1, gameNo: 1, busy: false, playing: false, records: [], recordRules: [], over: false, stopper: null, cpuThresh: [0, 6, 5, 7], rule: "high", maxRounds: 3, stopFrom: 2, thinking: null };
+const ADD = { players: [], turn: 0, drawsInRound: 0, round: 1, gameNo: 1, busy: false, playing: false, records: [], recordRules: [], over: false, stopper: null, cpuThresh: [0, 6, 5, 7], rule: "high", maxRounds: 3, stopFrom: 2, thinking: null, pendingStop: null };
 function addBuildDeck(maxRank) {
   const deck = [];
   for (const s of ["h", "d", "s", "c"]) for (let r = 1; r <= maxRank; r++) deck.push({ suit: s, rank: r });
@@ -617,8 +617,11 @@ function addBuildDeck(maxRank) {
 }
 const addSum = p => p.hand.reduce((a, c) => a + cardValue(c), 0);
 function addSource(idx) {
-  for (let k = 1; k <= 3; k++) { const j = (idx + k) % 4; if (ADD.players[j].hand.length) return j; }
-  return -1;
+  let fallback = -1;
+  for (let k = 1; k <= 3; k++) { const j = (idx + k) % 4; if (!ADD.players[j].hand.length) continue;
+    if (ADD.pendingStop != null && j === ADD.pendingStop) { fallback = j; continue; }
+    return j; }
+  return fallback;
 }
 function addRender(floats = {}) {
   const wrap = $("#add-players"); wrap.innerHTML = "";
@@ -666,7 +669,7 @@ function addStart() {
   const deck = addBuildDeck(maxRank);
   ADD.players = PLAYER_DEFS.map(d => ({ ...d, hand: [] }));
   deck.forEach((c, i) => ADD.players[i % 4].hand.push(c));
-  ADD.turn = 0; ADD.drawsInRound = 0; ADD.round = 1; ADD.playing = true; ADD.busy = false; ADD.over = false; ADD.stopper = null; ADD.thinking = null;
+  ADD.turn = 0; ADD.drawsInRound = 0; ADD.round = 1; ADD.playing = true; ADD.busy = false; ADD.over = false; ADD.stopper = null; ADD.thinking = null; ADD.pendingStop = null;
   ADD.cpuThresh = [0, 6 + Math.floor(Math.random() * 3), 5 + Math.floor(Math.random() * 3), 7 + Math.floor(Math.random() * 3)];
   $("#add-round-pill").textContent = "ゲーム " + ADD.gameNo;
   $("#add-stop").disabled = ADD.stopFrom > 1;
@@ -678,9 +681,11 @@ function addShowDrawZone() {
   const zone = $("#add-drawzone");
   if (!ADD.playing || ADD.turn !== 0) { zone.style.display = "none"; return; }
   const src = addSource(0);
-  if (src < 0) { zone.style.display = "none"; addStopGame(); return; }
+  if (src < 0) { zone.style.display = "none"; addStopGame(ADD.pendingStop); return; }
   zone.style.display = "block";
-  $("#add-draw-title").textContent = "あなたの番：左どなりの「" + ADD.players[src].name + "」の札を1枚タップして抜いてください";
+  $("#add-draw-title").textContent = ADD.pendingStop != null
+    ? "最終の番です：「" + ADD.players[ADD.pendingStop].name + "」がストップ宣言中。1枚抜いても、✋ストップボタンでそのまま公開してもOKです"
+    : "あなたの番：左どなりの「" + ADD.players[src].name + "」の札を1枚タップして抜いてください";
   const backs = $("#add-backs"); backs.innerHTML = "";
   ADD.players[src].hand.forEach((c, idx) => {
     const b = backEl(); b.title = "この札を抜く";
@@ -693,7 +698,7 @@ async function addDoDraw(drawerIdx, cardIdx) {
   ADD.busy = true;
   $("#add-drawzone").style.display = "none";
   const src = addSource(drawerIdx);
-  if (src < 0) { ADD.busy = false; addStopGame(); return; }
+  if (src < 0) { ADD.busy = false; addStopGame(ADD.pendingStop); return; }
   const source = ADD.players[src], drawer = ADD.players[drawerIdx];
   const before = ADD.players.map(addSum);
   const card = source.hand.splice(cardIdx != null ? cardIdx : Math.floor(Math.random() * source.hand.length), 1)[0];
@@ -714,12 +719,13 @@ async function addDoDraw(drawerIdx, cardIdx) {
     if (src === 0) { if (v < 0) { addMsg("「" + drawer.name + "」が、あなたの <b>赤札</b> を抜いていきました。あなたの点が <b>" + fmt(-v) + " 増えました</b>！ 負の数を引かれると増える、これがこの単元の肝です。"); sfx.good(); } else addMsg("「" + drawer.name + "」が、あなたの <b>" + cardName + "</b> を抜いていきました。"); }
     else addMsg("「" + drawer.name + "」が「" + source.name + "」から札を1枚抜きました。（何の札かは、終わるまで分かりません）");
   }
-  await wait(drawerIdx === 0 ? 750 : 1050);
+  await wait(drawerIdx === 0 ? 750 : 1200);
+  if (drawerIdx === 0 && ADD.pendingStop != null) { ADD.busy = false; addStopGame(ADD.pendingStop); return; }
   ADD.drawsInRound++;
   if (ADD.drawsInRound >= 4) {
     ADD.drawsInRound = 0; ADD.round++;
     if (ADD.round >= ADD.stopFrom) $("#add-stop").disabled = false;
-    if (ADD.round > ADD.maxRounds) { ADD.busy = false; addStopGame(); return; }
+    if (ADD.round > ADD.maxRounds) { ADD.busy = false; addStopGame(ADD.pendingStop); return; }
     if (ADD.playing) addMsg("―― " + ADD.round + " 周目に入ります ――");
     await wait(600);
   }
@@ -736,24 +742,31 @@ async function addCpuTurn() {
   const i = ADD.turn, sum = addSum(ADD.players[i]);
   const bar = ADD.cpuThresh[i] - (ADD.round >= ADD.maxRounds ? 2 : 0);
   const good = ADD.rule === "low" ? sum <= -bar : sum >= bar;
-  const willStop = ADD.round >= ADD.stopFrom && good;
+  const willStop = ADD.pendingStop == null && ADD.round >= ADD.stopFrom && good;
   ADD.thinking = i; addRender();
-  await wait(950 + Math.floor(Math.random() * 650) + (willStop ? 550 : 0));
+  await wait(1300 + Math.floor(Math.random() * 800) + (willStop ? 550 : 0));
   if (!ADD.playing || ADD.turn !== i) { ADD.thinking = null; return; }
   ADD.thinking = null;
   if (willStop) {
-    ADD.busy = true;
-    addMsg("✋ <b>「" + ADD.players[i].name + "」がストップをかけた！</b> 自分の合計が一番だと思ったようです。全員の手札を公開します。");
-    sfx.stamp(); ADD.stopper = i; addRender();
-    await wait(1400);
-    ADD.busy = false; addStopGame(i);
+    ADD.busy = true; ADD.pendingStop = i; ADD.stopper = i;
+    addMsg("✋ <b>「" + ADD.players[i].name + "」がストップを宣言！</b> 自分の合計が一番だと思ったようです。ただし、すぐに終わりません。<b>この周の残りの番（あなたの番まで）が終わってから</b>、全員の手札を公開します。あわてず、自分の合計を計算してください。");
+    sfx.stamp(); addRender();
+    await wait(1500);
+    ADD.drawsInRound++;
+    if (ADD.drawsInRound >= 4) { ADD.drawsInRound = 0; ADD.round++; }
+    ADD.turn = (ADD.turn + 1) % 4;
+    ADD.busy = false;
+    addRender();
+    if (!ADD.playing) return;
+    if (ADD.turn === 0) addShowDrawZone();
+    else addCpuTurn();
     return;
   }
   addDoDraw(i, null);
 }
 function addStopGame(stopperIdx = null) {
   if (!ADD.playing) return;
-  ADD.playing = false; ADD.over = true; ADD.thinking = null;
+  ADD.playing = false; ADD.over = true; ADD.thinking = null; ADD.pendingStop = null;
   if (stopperIdx != null) ADD.stopper = stopperIdx;
   $("#add-drawzone").style.display = "none";
   $("#add-stop").disabled = true;
@@ -825,6 +838,7 @@ function buildPrintSheet() { /* 記録用紙は固定レイアウト（本人の
 $("#add-start").addEventListener("click", () => { ac(); sfx.flip(); addStart(); });
 $("#add-stop").addEventListener("click", async () => {
   if (ADD.busy || !ADD.playing) return;
+  if (ADD.pendingStop != null) { if (ADD.turn === 0) addStopGame(ADD.pendingStop); return; }
   ADD.busy = true; ADD.stopper = 0; ADD.thinking = null;
   $("#add-drawzone").style.display = "none";
   addMsg("✋ <b>あなたがストップをかけた！</b> 全員の手札を公開します。");
